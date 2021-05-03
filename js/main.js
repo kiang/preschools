@@ -118,7 +118,8 @@ map.on('singleclick', function (evt) {
       if(p.url !== '') {
         message += '<tr><th scope="row">網址</th><td><a href="' + p.url + '" target="_blank">' + p.url + '</a></td></tr>';
       }
-      
+      message += '<tr><th scope="row">兼辦國小課後照顧</th><td>' + p.is_after + '</td></tr>';
+      message += '<tr><th scope="row">裁罰記錄</th><td>' + p.penalty + '</td></tr>';
       message += '<tr><td colspan="2">';
       message += '<hr /><div class="btn-group-vertical" role="group" style="width: 100%;">';
       message += '<a href="https://www.google.com/maps/dir/?api=1&destination=' + lonLat[1] + ',' + lonLat[0] + '&travelmode=driving" target="_blank" class="btn btn-info btn-lg btn-block">Google 導航</a>';
