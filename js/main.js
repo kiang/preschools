@@ -133,6 +133,7 @@ map.on('singleclick', function (evt) {
       $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/data/slip/' + p.city + '/' + p.title + '.json', {}, function(r) {
         var message = '<table class="table table-dark">';
         message += '<tbody>';
+        let slipKeys = ['學費', '雜費', '材料費', '活動費', '午餐費', '點心費', '交通費', '課後延托費', '家長會費'];
         for(y in r.slip) {
           for(p in r.slip[y]) {
             message += '<tr><td colspan="2">';
@@ -142,30 +143,18 @@ map.on('singleclick', function (evt) {
               message += '<tr><td colspan="2" style="text-align:right;">全日班</td></tr>';
               message += '<tr><td colspan="2" class="table-responsive"><table class="table-dark" style="width:100%;">'
               message += '<tr><th>項目</th><th>收費期間</th><th>單價</th><th>小計</th></tr>';
-              message += '<tr><td>學費</td><td>' + r.slip[y][p].class['全日班']['學費']['收費期間'] + '</td><td>' + r.slip[y][p].class['全日班']['學費']['單價'] + '</td><td>' + r.slip[y][p].class['全日班']['學費']['小計'] + '</td></tr>';
-              message += '<tr><td>雜費</td><td>' + r.slip[y][p].class['全日班']['雜費']['收費期間'] + '</td><td>' + r.slip[y][p].class['全日班']['雜費']['單價'] + '</td><td>' + r.slip[y][p].class['全日班']['雜費']['小計'] + '</td></tr>';
-              message += '<tr><td>材料費</td><td>' + r.slip[y][p].class['全日班']['材料費']['收費期間'] + '</td><td>' + r.slip[y][p].class['全日班']['材料費']['單價'] + '</td><td>' + r.slip[y][p].class['全日班']['材料費']['小計'] + '</td></tr>';
-              message += '<tr><td>活動費</td><td>' + r.slip[y][p].class['全日班']['活動費']['收費期間'] + '</td><td>' + r.slip[y][p].class['全日班']['活動費']['單價'] + '</td><td>' + r.slip[y][p].class['全日班']['活動費']['小計'] + '</td></tr>';
-              message += '<tr><td>午餐費</td><td>' + r.slip[y][p].class['全日班']['午餐費']['收費期間'] + '</td><td>' + r.slip[y][p].class['全日班']['午餐費']['單價'] + '</td><td>' + r.slip[y][p].class['全日班']['午餐費']['小計'] + '</td></tr>';
-              message += '<tr><td>點心費</td><td>' + r.slip[y][p].class['全日班']['點心費']['收費期間'] + '</td><td>' + r.slip[y][p].class['全日班']['點心費']['單價'] + '</td><td>' + r.slip[y][p].class['全日班']['點心費']['小計'] + '</td></tr>';
-              message += '<tr><td>交通費</td><td>' + r.slip[y][p].class['全日班']['交通費']['收費期間'] + '</td><td>' + r.slip[y][p].class['全日班']['交通費']['單價'] + '</td><td>' + r.slip[y][p].class['全日班']['交通費']['小計'] + '</td></tr>';
-              message += '<tr><td>課後延托費</td><td>' + r.slip[y][p].class['全日班']['課後延托費']['收費期間'] + '</td><td>' + r.slip[y][p].class['全日班']['課後延托費']['單價'] + '</td><td>' + r.slip[y][p].class['全日班']['課後延托費']['小計'] + '</td></tr>';
-              message += '<tr><td>家長會費</td><td>' + r.slip[y][p].class['全日班']['家長會費']['收費期間'] + '</td><td>' + r.slip[y][p].class['全日班']['家長會費']['單價'] + '</td><td>' + r.slip[y][p].class['全日班']['家長會費']['小計'] + '</td></tr>';
+              for(let slipKey of slipKeys) {
+                message += '<tr><td>' + slipKey + '</td><td>' + r.slip[y][p].class['全日班'][slipKey]['收費期間'] + '</td><td>' + r.slip[y][p].class['全日班'][slipKey]['單價'] + '</td><td>' + r.slip[y][p].class['全日班'][slipKey]['小計'] + '</td></tr>';
+              }
               message += '</table></td></tr>';
             }
             if(r.slip[y][p].class['半日班']['學費']['單價']) {
               message += '<tr><td colspan="2" style="text-align:right;">半日班</td></tr>';
               message += '<tr><td colspan="2" class="table-responsive"><table class="table-dark" style="width:100%;">'
               message += '<tr><th>項目</th><th>收費期間</th><th>單價</th><th>小計</th></tr>';
-              message += '<tr><td>學費</td><td>' + r.slip[y][p].class['半日班']['學費']['收費期間'] + '</td><td>' + r.slip[y][p].class['半日班']['學費']['單價'] + '</td><td>' + r.slip[y][p].class['半日班']['學費']['小計'] + '</td></tr>';
-              message += '<tr><td>雜費</td><td>' + r.slip[y][p].class['半日班']['雜費']['收費期間'] + '</td><td>' + r.slip[y][p].class['半日班']['雜費']['單價'] + '</td><td>' + r.slip[y][p].class['半日班']['雜費']['小計'] + '</td></tr>';
-              message += '<tr><td>材料費</td><td>' + r.slip[y][p].class['半日班']['材料費']['收費期間'] + '</td><td>' + r.slip[y][p].class['半日班']['材料費']['單價'] + '</td><td>' + r.slip[y][p].class['半日班']['材料費']['小計'] + '</td></tr>';
-              message += '<tr><td>活動費</td><td>' + r.slip[y][p].class['半日班']['活動費']['收費期間'] + '</td><td>' + r.slip[y][p].class['半日班']['活動費']['單價'] + '</td><td>' + r.slip[y][p].class['半日班']['活動費']['小計'] + '</td></tr>';
-              message += '<tr><td>午餐費</td><td>' + r.slip[y][p].class['半日班']['午餐費']['收費期間'] + '</td><td>' + r.slip[y][p].class['半日班']['午餐費']['單價'] + '</td><td>' + r.slip[y][p].class['半日班']['午餐費']['小計'] + '</td></tr>';
-              message += '<tr><td>點心費</td><td>' + r.slip[y][p].class['半日班']['點心費']['收費期間'] + '</td><td>' + r.slip[y][p].class['半日班']['點心費']['單價'] + '</td><td>' + r.slip[y][p].class['半日班']['點心費']['小計'] + '</td></tr>';
-              message += '<tr><td>交通費</td><td>' + r.slip[y][p].class['半日班']['交通費']['收費期間'] + '</td><td>' + r.slip[y][p].class['半日班']['交通費']['單價'] + '</td><td>' + r.slip[y][p].class['半日班']['交通費']['小計'] + '</td></tr>';
-              message += '<tr><td>課後延托費</td><td>' + r.slip[y][p].class['半日班']['課後延托費']['收費期間'] + '</td><td>' + r.slip[y][p].class['半日班']['課後延托費']['單價'] + '</td><td>' + r.slip[y][p].class['半日班']['課後延托費']['小計'] + '</td></tr>';
-              message += '<tr><td>家長會費</td><td>' + r.slip[y][p].class['半日班']['家長會費']['收費期間'] + '</td><td>' + r.slip[y][p].class['半日班']['家長會費']['單價'] + '</td><td>' + r.slip[y][p].class['半日班']['家長會費']['小計'] + '</td></tr>';
+              for(let slipKey of slipKeys) {
+                message += '<tr><td>' + slipKey + '</td><td>' + r.slip[y][p].class['半日班'][slipKey]['收費期間'] + '</td><td>' + r.slip[y][p].class['半日班'][slipKey]['單價'] + '</td><td>' + r.slip[y][p].class['半日班'][slipKey]['小計'] + '</td></tr>';
+              }
               message += '</table></td></tr>';
             }
           }
