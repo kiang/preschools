@@ -177,7 +177,6 @@ map.on('singleclick', function (evt) {
         }
         message += '</tbody></table>';
         slip.innerHTML = message;
-        console.log(r);
       });
       sidebar.open('home');
     }
