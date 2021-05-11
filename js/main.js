@@ -113,7 +113,7 @@ map.on('singleclick', function (evt) {
       message += '<tr><th scope="row">住址</th><td>' + p.city + p.town + p.address + '</td></tr>';
       message += '<tr><th scope="row">類型</th><td>' + p.type + '</td></tr>';
       message += '<tr><th scope="row">核定人數</th><td>' + p.count_approved + '</td></tr>';
-      message += '<tr><th scope="row">五歲免費</th><td>' + p.free5 + '</td></tr>';
+      message += '<tr><th scope="row">五歲免費</th><td>' + p.is_free5 + '</td></tr>';
       message += '<tr><th scope="row">準公共化</th><td>' + p.pre_public + '</td></tr>';
       if(p.url !== '') {
         message += '<tr><th scope="row">網址</th><td><a href="' + p.url + '" target="_blank">' + p.url + '</a></td></tr>';
