@@ -25,7 +25,7 @@ function pointStyleFunction(f) {
       color: '#fff',
       width: 2
     });
-    radius = 15;
+    radius = 20;
   }
   switch (p.type) {
     case '公立':
@@ -42,7 +42,7 @@ function pointStyleFunction(f) {
       color = '#ffdd57';
       break;
   }
-  return new ol.style.Style({
+  let pointStyle = new ol.style.Style({
     image: new ol.style.RegularShape({
       radius: radius,
       points: 3,
@@ -50,8 +50,16 @@ function pointStyleFunction(f) {
         color: color
       }),
       stroke: stroke
+    }),
+    text: new ol.style.Text({
+        font: '14px "Open Sans", "Arial Unicode MS", "sans-serif"',
+        fill: new ol.style.Fill({
+            color: 'rgba(0,0,255,0.7)'
+        })
     })
-  })
+  });
+  pointStyle.getText().setText(p.monthly.toString());
+  return pointStyle;
 }
 var sidebarTitle = document.getElementById('sidebarTitle');
 var content = document.getElementById('infoBox');
