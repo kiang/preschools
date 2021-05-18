@@ -21,10 +21,18 @@ function pointStyleFunction(f) {
     });
     radius = 25;
   } else {
-    stroke = new ol.style.Stroke({
-      color: '#fff',
-      width: 2
-    });
+    if (p.penalty === '有') {
+      stroke = new ol.style.Stroke({
+        color: '#f00',
+        width: 2
+      });
+    } else {
+      stroke = new ol.style.Stroke({
+        color: '#fff',
+        width: 2
+      });
+    }
+    
     radius = 20;
   }
   switch (p.type) {
