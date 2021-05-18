@@ -69,29 +69,41 @@
                 <h1 class="sidebar-header"><span id="sidebarTitle">請點選地圖中的點</span><span class="sidebar-close"><i
                             class="fa fa-caret-left"></i></span></h1>
                 <div id="sidebarContent">
-                    <div class="accordion" id="accordionExample">
+                    <div class="accordion" id="accordionMain">
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="headingOne">
                                 <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                                    data-bs-target="#collapseInfo" aria-expanded="true" aria-controls="collapseInfo">
                                     基本資料
                                 </button>
                             </h2>
-                            <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne"
-                                data-bs-parent="#accordionExample">
+                            <div id="collapseInfo" class="accordion-collapse collapse show" aria-labelledby="headingOne"
+                                data-bs-parent="#accordionMain">
                                 <div class="accordion-body" id="infoBox"></div>
                             </div>
                         </div>
                         <div class="accordion-item">
                             <h2 class="accordion-header" id="headingTwo">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                                    data-bs-target="#collapseSlip" aria-expanded="false" aria-controls="collapseSlip">
                                     收費
                                 </button>
                             </h2>
-                            <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo"
-                                data-bs-parent="#accordionExample">
+                            <div id="collapseSlip" class="accordion-collapse collapse" aria-labelledby="headingTwo"
+                                data-bs-parent="#accordionMain">
                                 <div class="accordion-body" id="slipBox"></div>
+                            </div>
+                        </div>
+                        <div class="accordion-item" id="punishmentItem" style="display:none;">
+                            <h2 class="accordion-header" id="headingTwo">
+                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                                    data-bs-target="#collapsePunishment" aria-expanded="false" aria-controls="collapsePunishment">
+                                    裁罰
+                                </button>
+                            </h2>
+                            <div id="collapsePunishment" class="accordion-collapse collapse" aria-labelledby="headingTwo"
+                                data-bs-parent="#accordionMain">
+                                <div class="accordion-body" id="punishmentBox"></div>
                             </div>
                         </div>
                     </div>

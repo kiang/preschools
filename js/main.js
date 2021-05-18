@@ -32,7 +32,7 @@ function pointStyleFunction(f) {
       color = '#48c774';
       break;
     case '私立':
-      if(p.pre_public !== '無') {
+      if (p.pre_public !== '無') {
         color = '#57ffdd';
       } else {
         color = '#57ddff';
@@ -52,10 +52,10 @@ function pointStyleFunction(f) {
       stroke: stroke
     }),
     text: new ol.style.Text({
-        font: '14px "Open Sans", "Arial Unicode MS", "sans-serif"',
-        fill: new ol.style.Fill({
-            color: 'rgba(0,0,255,0.7)'
-        })
+      font: '14px "Open Sans", "Arial Unicode MS", "sans-serif"',
+      fill: new ol.style.Fill({
+        color: 'rgba(0,0,255,0.7)'
+      })
     })
   });
   pointStyle.getText().setText(p.monthly.toString());
@@ -114,7 +114,7 @@ map.on('singleclick', function (evt) {
       var p = feature.getProperties();
       var lonLat = ol.proj.toLonLat(p.geometry.getCoordinates());
       pointClicked = true;
-      
+
       var message = '<table class="table table-dark">';
       message += '<tbody>';
       message += '<tr><th scope="row" style="width: 100px;">名稱</th><td>' + p.title + '</td></tr>';
@@ -124,7 +124,7 @@ map.on('singleclick', function (evt) {
       message += '<tr><th scope="row">核定人數</th><td>' + p.count_approved + '</td></tr>';
       message += '<tr><th scope="row">五歲免費</th><td>' + p.is_free5 + '</td></tr>';
       message += '<tr><th scope="row">準公共化</th><td>' + p.pre_public + '</td></tr>';
-      if(p.url !== '') {
+      if (p.url !== '') {
         message += '<tr><th scope="row">網址</th><td><a href="' + p.url + '" target="_blank">' + p.url + '</a></td></tr>';
       }
       message += '<tr><th scope="row">兼辦國小課後照顧</th><td>' + p.is_after + '</td></tr>';
@@ -138,44 +138,63 @@ map.on('singleclick', function (evt) {
       message += '</tbody></table>';
       sidebarTitle.innerHTML = p.title;
       content.innerHTML = message;
-      $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/data/slip/' + p.city + '/' + p.title + '.json', {}, function(r) {
+
+      if (p.penalty === '有') {
+        $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/data/punish/' + p.city + '/' + p.title + '.json', {}, function (r) {
+          var message = '';
+          for (let line of r) {
+            message += '<table class="table table-dark"><tbody>';
+            message += '<tr><td>' + line[0] + '</td></tr>';
+            message += '<tr><td>' + line[1] + '</td></tr>';
+            message += '<tr><td>' + line[2] + '</td></tr>';
+            message += '<tr><td>' + line[3] + '</td></tr>';
+            message += '<tr><td>' + line[4] + '</td></tr>';
+            message += '<tr><td>' + line[5] + '</td></tr>';
+            message += '</tbody></table>';
+          }
+          $('#punishmentBox').html(message);
+        });
+        $('#punishmentItem').show();
+      }
+
+      $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/data/slip/' + p.city + '/' + p.title + '.json', {}, function (r) {
         var message = '<table class="table table-dark">';
         message += '<tbody>';
         let slipKeys = ['學費', '雜費', '材料費', '活動費', '午餐費', '點心費', '全學期總收費', '交通費', '課後延托費', '家長會費'];
-        for(y in r.slip) {
-          for(p in r.slip[y]) {
+        for (y in r.slip) {
+          for (p in r.slip[y]) {
             message += '<tr><td colspan="2">';
             message += y + '歲 - ' + p + ' / ' + r.slip[y][p].months + '個月';
             message += '</td></tr>';
             let blockToShow = false;
-            for(let slipKey of slipKeys) {
-              if(r.slip[y][p].class['全日班'][slipKey] && r.slip[y][p].class['全日班'][slipKey]['單價'] != '') {
+            for (let slipKey of slipKeys) {
+              if (r.slip[y][p].class['全日班'][slipKey] && r.slip[y][p].class['全日班'][slipKey]['單價'] != '') {
                 blockToShow = true;
               }
             }
-            if(blockToShow) {
+            if (blockToShow) {
               message += '<tr><td colspan="2" style="text-align:right;">全日班</td></tr>';
               message += '<tr><td colspan="2" class="table-responsive"><table class="table-dark" style="width:100%;">'
               message += '<tr><th>項目</th><th>收費期間</th><th>單價</th><th>小計</th></tr>';
-              for(let slipKey of slipKeys) {
-                if(r.slip[y][p].class['全日班'][slipKey]) {
+              for (let slipKey of slipKeys) {
+                if (r.slip[y][p].class['全日班'][slipKey]) {
                   message += '<tr><td>' + slipKey + '</td><td>' + r.slip[y][p].class['全日班'][slipKey]['收費期間'] + '</td><td>' + r.slip[y][p].class['全日班'][slipKey]['單價'] + '</td><td>' + r.slip[y][p].class['全日班'][slipKey]['小計'] + '</td></tr>';
                 }
               }
               message += '</table></td></tr>';
             }
             blockToShow = false;
-            for(let slipKey of slipKeys) {
-              if(r.slip[y][p].class['半日班'][slipKey] && r.slip[y][p].class['半日班'][slipKey]['單價'] != '') {
+            for (let slipKey of slipKeys) {
+              if (r.slip[y][p].class['半日班'][slipKey] && r.slip[y][p].class['半日班'][slipKey]['單價'] != '') {
                 blockToShow = true;
               }
             }
-            if(blockToShow) {
+            if (blockToShow) {
               message += '<tr><td colspan="2" style="text-align:right;">半日班</td></tr>';
               message += '<tr><td colspan="2" class="table-responsive"><table class="table-dark" style="width:100%;">'
               message += '<tr><th>項目</th><th>收費期間</th><th>單價</th><th>小計</th></tr>';
-              for(let slipKey of slipKeys) {
-                if(r.slip[y][p].class['半日班'][slipKey]) {
+              for (let slipKey of slipKeys) {
+                if (r.slip[y][p].class['半日班'][slipKey]) {
                   message += '<tr><td>' + slipKey + '</td><td>' + r.slip[y][p].class['半日班'][slipKey]['收費期間'] + '</td><td>' + r.slip[y][p].class['半日班'][slipKey]['單價'] + '</td><td>' + r.slip[y][p].class['半日班'][slipKey]['小計'] + '</td></tr>';
                 }
               }
