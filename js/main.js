@@ -163,6 +163,8 @@ map.on('singleclick', function (evt) {
           $('#punishmentBox').html(message);
         });
         $('#punishmentItem').show();
+      } else {
+        $('#punishmentBox').html('');
       }
 
       $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/data/slip/' + p.city + '/' + p.title + '.json', {}, function (r) {
