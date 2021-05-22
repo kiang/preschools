@@ -12,8 +12,17 @@ for (var z = 0; z < 20; ++z) {
   matrixIds[z] = z;
 }
 
+var cityList = {};
+var filterCity = '', filterTown = '';
+var filterExtent = false;
 function pointStyleFunction(f) {
   var p = f.getProperties(), color, stroke, radius;
+  if (filterCity !== '' && p.city !== filterCity) {
+    return null;
+  }
+  if (filterTown !== '' && p.town !== filterTown) {
+    return null;
+  }
   if (f === currentFeature) {
     stroke = new ol.style.Stroke({
       color: '#000',
@@ -32,7 +41,7 @@ function pointStyleFunction(f) {
         width: 2
       });
     }
-    
+
     radius = 20;
   }
   switch (p.type) {
@@ -78,13 +87,81 @@ var appView = new ol.View({
   zoom: 14
 });
 
+var vectorSource = new ol.source.Vector({
+  url: 'https://kiang.github.io/ap.ece.moe.edu.tw/preschools.json',
+  format: new ol.format.GeoJSON({
+    featureProjection: appView.getProjection()
+  })
+});
+var cityOptionDone = false;
+vectorSource.on('change', function () {
+  if (vectorSource.getState() == 'ready') {
+    vectorSource.forEachFeature(function (f) {
+      var p = f.getProperties();
+      if (false === cityOptionDone) {
+        if (!cityList[p.city]) {
+          cityList[p.city] = {};
+        }
+        if (!cityList[p.city][p.town]) {
+          cityList[p.city][p.town] = 0;
+        }
+        ++cityList[p.city][p.town];
+      }
+      if(filterTown !== '') {
+        if(p.city === filterCity && p.town === filterTown) {
+          if (false === filterExtent) {
+            filterExtent = f.getGeometry().getExtent();
+          } else {
+            ol.extent.extend(filterExtent, f.getGeometry().getExtent());
+          }
+        }
+      } else if(filterCity !== '') {
+        if(p.city === filterCity) {
+          if (false === filterExtent) {
+            filterExtent = f.getGeometry().getExtent();
+          } else {
+            ol.extent.extend(filterExtent, f.getGeometry().getExtent());
+          }
+        }
+      }
+
+    });
+    if (false === cityOptionDone) {
+      cityOptionDone = true;
+      var cityOptions = '<option value="">--</option>';
+      for (city in cityList) {
+        cityOptions += '<option>' + city + '</option>';
+      }
+      $('select#city').html(cityOptions);
+    }
+    if (false !== filterExtent) {
+      map.getView().fit(filterExtent);
+      filterExtent = false;
+    }
+  }
+});
+
+$('select#city').change(function () {
+  filterCity = $(this).val();
+  var townOptions = '<option value="">--</option>';
+  if (filterCity !== '') {
+    for (town in cityList[filterCity]) {
+      townOptions += '<option>' + town + '</option>';
+    }
+  }
+  $('select#town').html(townOptions);
+  filterTown = '';
+  filterExtent = false;
+  vectorSource.refresh();
+});
+$('select#town').change(function () {
+  filterTown = $(this).val();
+  filterExtent = false;
+  vectorSource.refresh();
+});
+
 var vectorPoints = new ol.layer.Vector({
-  source: new ol.source.Vector({
-    url: 'https://kiang.github.io/ap.ece.moe.edu.tw/preschools.json',
-    format: new ol.format.GeoJSON({
-      featureProjection: appView.getProjection()
-    })
-  }),
+  source: vectorSource,
   style: pointStyleFunction
 });
 
