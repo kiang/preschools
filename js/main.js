@@ -81,6 +81,7 @@ function pointStyleFunction(f) {
 var sidebarTitle = document.getElementById('sidebarTitle');
 var content = document.getElementById('infoBox');
 var slip = document.getElementById('slipBox');
+var slip109 = document.getElementById('slipBox109');
 
 var appView = new ol.View({
   center: ol.proj.fromLonLat([120.221507, 23.000694]),
@@ -245,6 +246,7 @@ map.on('singleclick', function (evt) {
         $('#punishmentItem').hide();
       }
 
+      $('#accordion110').hide();
       $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/data/slip/' + p.city + '/' + p.title + '.json', {}, function (r) {
         var message = '<table class="table table-dark">';
         message += '<tbody>';
@@ -292,6 +294,58 @@ map.on('singleclick', function (evt) {
         }
         message += '</tbody></table>';
         slip.innerHTML = message;
+        $('#accordion110').show();
+      });
+
+      $('#accordion109').hide();
+      $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/data/slip109/' + p.city + '/' + p.title + '.json', {}, function (r) {
+        var message = '<table class="table table-dark">';
+        message += '<tbody>';
+        let slipKeys = ['學費', '雜費', '材料費', '活動費', '午餐費', '點心費', '全學期總收費', '交通費', '課後延托費', '家長會費'];
+        for (y in r.slip) {
+          for (p in r.slip[y]) {
+            message += '<tr><td colspan="2">';
+            message += y + '歲 - ' + p + ' / ' + r.slip[y][p].months + '個月';
+            message += '</td></tr>';
+            let blockToShow = false;
+            for (let slipKey of slipKeys) {
+              if (r.slip[y][p].class['全日班'][slipKey] && r.slip[y][p].class['全日班'][slipKey]['單價'] != '') {
+                blockToShow = true;
+              }
+            }
+            if (blockToShow) {
+              message += '<tr><td colspan="2" style="text-align:right;">全日班</td></tr>';
+              message += '<tr><td colspan="2" class="table-responsive"><table class="table-dark" style="width:100%;">'
+              message += '<tr><th>項目</th><th>收費期間</th><th>單價</th><th>小計</th></tr>';
+              for (let slipKey of slipKeys) {
+                if (r.slip[y][p].class['全日班'][slipKey]) {
+                  message += '<tr><td>' + slipKey + '</td><td>' + r.slip[y][p].class['全日班'][slipKey]['收費期間'] + '</td><td>' + r.slip[y][p].class['全日班'][slipKey]['單價'] + '</td><td>' + r.slip[y][p].class['全日班'][slipKey]['小計'] + '</td></tr>';
+                }
+              }
+              message += '</table></td></tr>';
+            }
+            blockToShow = false;
+            for (let slipKey of slipKeys) {
+              if (r.slip[y][p].class['半日班'][slipKey] && r.slip[y][p].class['半日班'][slipKey]['單價'] != '') {
+                blockToShow = true;
+              }
+            }
+            if (blockToShow) {
+              message += '<tr><td colspan="2" style="text-align:right;">半日班</td></tr>';
+              message += '<tr><td colspan="2" class="table-responsive"><table class="table-dark" style="width:100%;">'
+              message += '<tr><th>項目</th><th>收費期間</th><th>單價</th><th>小計</th></tr>';
+              for (let slipKey of slipKeys) {
+                if (r.slip[y][p].class['半日班'][slipKey]) {
+                  message += '<tr><td>' + slipKey + '</td><td>' + r.slip[y][p].class['半日班'][slipKey]['收費期間'] + '</td><td>' + r.slip[y][p].class['半日班'][slipKey]['單價'] + '</td><td>' + r.slip[y][p].class['半日班'][slipKey]['小計'] + '</td></tr>';
+                }
+              }
+              message += '</table></td></tr>';
+            }
+          }
+        }
+        message += '</tbody></table>';
+        slip109.innerHTML = message;
+        $('#accordion109').show();
       });
       sidebar.open('home');
     }
