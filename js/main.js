@@ -108,16 +108,16 @@ vectorSource.on('change', function () {
         }
         ++cityList[p.city][p.town];
       }
-      if(filterTown !== '') {
-        if(p.city === filterCity && p.town === filterTown) {
+      if (filterTown !== '') {
+        if (p.city === filterCity && p.town === filterTown) {
           if (false === filterExtent) {
             filterExtent = f.getGeometry().getExtent();
           } else {
             ol.extent.extend(filterExtent, f.getGeometry().getExtent());
           }
         }
-      } else if(filterCity !== '') {
-        if(p.city === filterCity) {
+      } else if (filterCity !== '') {
+        if (p.city === filterCity) {
           if (false === filterExtent) {
             filterExtent = f.getGeometry().getExtent();
           } else {
@@ -204,10 +204,23 @@ map.on('singleclick', function (evt) {
       var message = '<table class="table table-dark">';
       message += '<tbody>';
       message += '<tr><th scope="row" style="width: 100px;">名稱</th><td>' + p.title + '</td></tr>';
+      if (p.owner) {
+        message += '<tr><th scope="row">負責人</th><td>' + p.owner + '</td></tr>';
+      }
       message += '<tr><th scope="row">電話</th><td>' + p.tel + '</td></tr>';
       message += '<tr><th scope="row">住址</th><td>' + p.city + p.town + p.address + '</td></tr>';
       message += '<tr><th scope="row">類型</th><td>' + p.type + '</td></tr>';
       message += '<tr><th scope="row">核定人數</th><td>' + p.count_approved + '</td></tr>';
+      if (p.size) {
+        message += '<tr><th scope="row">全園總面積</th><td>' + p.size + '</td></tr>';
+        message += '<tr><th scope="row">室內總面積</th><td>' + p.size_in + '</td></tr>';
+        message += '<tr><th scope="row">室外活動空間總面積</th><td>' + p.size_out + '</td></tr>';
+        message += '<tr><th scope="row">使用樓層</th><td>' + p.floor + '</td></tr>';
+        message += '<tr><th scope="row">幼童專用車</th><td>' + p.shuttle + '</td></tr>';
+        message += '<tr><th scope="row">核准設立日期</th><td>' + p.reg_date + '</td></tr>';
+        message += '<tr><th scope="row">設立許可證號</th><td>' + p.reg_no + '</td></tr>';
+        message += '<tr><th scope="row">設立許可文號</th><td>' + p.reg_docno + '</td></tr>';
+      }
       message += '<tr><th scope="row">五歲免費</th><td>' + p.is_free5 + '</td></tr>';
       message += '<tr><th scope="row">準公共化</th><td>' + p.pre_public + '</td></tr>';
       if (p.url !== '') {
