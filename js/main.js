@@ -75,7 +75,7 @@ function pointStyleFunction(f) {
       })
     })
   });
-  pointStyle.getText().setText(p.monthly.toString());
+  pointStyle.getText().setText('$' + p.monthly.toString() + '/月');
   return pointStyle;
 }
 var sidebarTitle = document.getElementById('sidebarTitle');
