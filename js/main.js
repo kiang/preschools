@@ -14,9 +14,8 @@ for (var z = 0; z < 20; ++z) {
 
 var cityList = {};
 var filterCity = '', filterTown = '';
-var filterExtent = false;
 function pointStyleFunction(f) {
-  var p = f.getProperties(), color, stroke, radius;
+  var p = f.getProperties(), color, stroke, radius, fPoints = 3;
   if (filterCity !== '' && p.city !== filterCity) {
     return null;
   }
@@ -25,10 +24,11 @@ function pointStyleFunction(f) {
   }
   if (f === currentFeature) {
     stroke = new ol.style.Stroke({
-      color: '#000',
-      width: 5
+      color: 'rgba(255,0,255,0.5)',
+      width: 10
     });
-    radius = 25;
+    radius = 35;
+    fPoints = 5;
   } else {
     if (p.penalty === '有') {
       stroke = new ol.style.Stroke({
@@ -62,7 +62,7 @@ function pointStyleFunction(f) {
   let pointStyle = new ol.style.Style({
     image: new ol.style.RegularShape({
       radius: radius,
-      points: 3,
+      points: fPoints,
       fill: new ol.style.Fill({
         color: color
       }),
@@ -89,57 +89,9 @@ var appView = new ol.View({
 });
 
 var vectorSource = new ol.source.Vector({
-  url: 'https://kiang.github.io/ap.ece.moe.edu.tw/preschools.json',
   format: new ol.format.GeoJSON({
     featureProjection: appView.getProjection()
   })
-});
-var cityOptionDone = false;
-vectorSource.on('change', function () {
-  if (vectorSource.getState() == 'ready') {
-    vectorSource.forEachFeature(function (f) {
-      var p = f.getProperties();
-      if (false === cityOptionDone) {
-        if (!cityList[p.city]) {
-          cityList[p.city] = {};
-        }
-        if (!cityList[p.city][p.town]) {
-          cityList[p.city][p.town] = 0;
-        }
-        ++cityList[p.city][p.town];
-      }
-      if (filterTown !== '') {
-        if (p.city === filterCity && p.town === filterTown) {
-          if (false === filterExtent) {
-            filterExtent = f.getGeometry().getExtent();
-          } else {
-            ol.extent.extend(filterExtent, f.getGeometry().getExtent());
-          }
-        }
-      } else if (filterCity !== '') {
-        if (p.city === filterCity) {
-          if (false === filterExtent) {
-            filterExtent = f.getGeometry().getExtent();
-          } else {
-            ol.extent.extend(filterExtent, f.getGeometry().getExtent());
-          }
-        }
-      }
-
-    });
-    if (false === cityOptionDone) {
-      cityOptionDone = true;
-      var cityOptions = '<option value="">--</option>';
-      for (city in cityList) {
-        cityOptions += '<option>' + city + '</option>';
-      }
-      $('select#city').html(cityOptions);
-    }
-    if (false !== filterExtent) {
-      map.getView().fit(filterExtent);
-      filterExtent = false;
-    }
-  }
 });
 
 $('select#city').change(function () {
@@ -152,12 +104,10 @@ $('select#city').change(function () {
   }
   $('select#town').html(townOptions);
   filterTown = '';
-  filterExtent = false;
   vectorSource.refresh();
 });
 $('select#town').change(function () {
   filterTown = $(this).val();
-  filterExtent = false;
   vectorSource.refresh();
 });
 
@@ -198,9 +148,94 @@ map.on('singleclick', function (evt) {
   map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
     if (false === pointClicked) {
       var p = feature.getProperties();
-      var lonLat = ol.proj.toLonLat(p.geometry.getCoordinates());
+      var targetHash = '#' + p.id;
+      if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+      }
       pointClicked = true;
+    }
+  });
+});
 
+var previousFeature = false;
+var currentFeature = false;
+
+var geolocation = new ol.Geolocation({
+  projection: appView.getProjection()
+});
+
+geolocation.setTracking(true);
+
+geolocation.on('error', function (error) {
+  console.log(error.message);
+});
+
+var positionFeature = new ol.Feature();
+
+positionFeature.setStyle(new ol.style.Style({
+  image: new ol.style.Circle({
+    radius: 6,
+    fill: new ol.style.Fill({
+      color: '#3399CC'
+    }),
+    stroke: new ol.style.Stroke({
+      color: '#fff',
+      width: 2
+    })
+  })
+}));
+
+var firstPosDone = false;
+geolocation.on('change:position', function () {
+  var coordinates = geolocation.getPosition();
+  positionFeature.setGeometry(coordinates ? new ol.geom.Point(coordinates) : null);
+  if (false === firstPosDone) {
+    appView.setCenter(coordinates);
+    firstPosDone = true;
+  }
+});
+
+new ol.layer.Vector({
+  map: map,
+  source: new ol.source.Vector({
+    features: [positionFeature]
+  })
+});
+
+$('#btn-geolocation').click(function () {
+  var coordinates = geolocation.getPosition();
+  if (coordinates) {
+    appView.setCenter(coordinates);
+  } else {
+    alert('目前使用的設備無法提供地理資訊');
+  }
+  return false;
+});
+
+function showPos(lng, lat) {
+  firstPosDone = true;
+  appView.setCenter(ol.proj.fromLonLat([parseFloat(lng), parseFloat(lat)]));
+}
+
+var previousFeature = false;
+var currentFeature = false;
+function showPoint(pointId) {
+  firstPosDone = true;
+  $('#findPoint').val('');
+  var features = vectorPoints.getSource().getFeatures();
+  var pointFound = false;
+  for (k in features) {
+    var p = features[k].getProperties();
+    if (p.id === pointId) {
+      currentFeature = features[k];
+      features[k].setStyle(pointStyleFunction(features[k]));
+      if (false !== previousFeature) {
+        previousFeature.setStyle(pointStyleFunction(previousFeature));
+      }
+      previousFeature = currentFeature;
+      appView.setCenter(features[k].getGeometry().getCoordinates());
+      appView.setZoom(15);
+      var lonLat = ol.proj.toLonLat(p.geometry.getCoordinates());
       var message = '<table class="table table-dark">';
       message += '<tbody>';
       message += '<tr><th scope="row" style="width: 100px;">名稱</th><td>' + p.title + '</td></tr>';
@@ -360,62 +395,51 @@ map.on('singleclick', function (evt) {
         slip109.innerHTML = message;
         $('#accordion109').show();
       });
-      sidebar.open('home');
+
+      sidebarTitle.innerHTML = p.title;
+      content.innerHTML = message;
+    }
+  }
+  sidebar.open('home');
+}
+
+var pointsFc;
+var adminTree = {};
+var findTerms = [];
+$.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/preschools.json', {}, function (c) {
+  pointsFc = c;
+  var vFormat = vectorSource.getFormat();
+  vectorSource.addFeatures(vFormat.readFeatures(pointsFc));
+
+  for (k in pointsFc.features) {
+    var p = pointsFc.features[k].properties;
+    findTerms.push({
+      value: p.id,
+      label: p.title + ' ' + p.address
+    });
+    if (!cityList[p.city]) {
+      cityList[p.city] = {};
+    }
+    if (!cityList[p.city][p.town]) {
+      ++cityList[p.city][p.town];
+    }
+  }
+  var cityOptions = '<option value="">--</option>';
+  for (city in cityList) {
+    cityOptions += '<option>' + city + '</option>';
+  }
+  $('select#city').html(cityOptions);
+
+  routie(':pointId', showPoint);
+  routie('pos/:lng/:lat', showPos);
+
+  $('#findPoint').autocomplete({
+    source: findTerms,
+    select: function (event, ui) {
+      var targetHash = '#' + ui.item.value;
+      if (window.location.hash !== targetHash) {
+        window.location.hash = targetHash;
+      }
     }
   });
-});
-
-var previousFeature = false;
-var currentFeature = false;
-
-var geolocation = new ol.Geolocation({
-  projection: appView.getProjection()
-});
-
-geolocation.setTracking(true);
-
-geolocation.on('error', function (error) {
-  console.log(error.message);
-});
-
-var positionFeature = new ol.Feature();
-
-positionFeature.setStyle(new ol.style.Style({
-  image: new ol.style.Circle({
-    radius: 6,
-    fill: new ol.style.Fill({
-      color: '#3399CC'
-    }),
-    stroke: new ol.style.Stroke({
-      color: '#fff',
-      width: 2
-    })
-  })
-}));
-
-var firstPosDone = false;
-geolocation.on('change:position', function () {
-  var coordinates = geolocation.getPosition();
-  positionFeature.setGeometry(coordinates ? new ol.geom.Point(coordinates) : null);
-  if (false === firstPosDone) {
-    appView.setCenter(coordinates);
-    firstPosDone = true;
-  }
-});
-
-new ol.layer.Vector({
-  map: map,
-  source: new ol.source.Vector({
-    features: [positionFeature]
-  })
-});
-
-$('#btn-geolocation').click(function () {
-  var coordinates = geolocation.getPosition();
-  if (coordinates) {
-    appView.setCenter(coordinates);
-  } else {
-    alert('目前使用的設備無法提供地理資訊');
-  }
-  return false;
 });

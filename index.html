@@ -14,6 +14,10 @@
     <link rel="stylesheet" href="css/ol3-sidebar.min.css" type="text/css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-wEmeIV1mKuiNpC+IOBjI7aAzPcEZeedi5yW5f2yOq55WWLwNGmvvx4Um1vskeMj0" crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/themes/dark-hive/jquery-ui.min.css"
+        crossorigin="anonymous">
+    <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/themes/dark-hive/theme.min.css"
+        crossorigin="anonymous">
     <style>
         body {
             padding: 0;
@@ -38,14 +42,14 @@
         }
     </style>
     <!-- Global site tag (gtag.js) - Google Analytics -->
-<script async src="https://www.googletagmanager.com/gtag/js?id=G-3GE076J7DJ"></script>
-<script>
-  window.dataLayer = window.dataLayer || [];
-  function gtag(){dataLayer.push(arguments);}
-  gtag('js', new Date());
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-3GE076J7DJ"></script>
+    <script>
+        window.dataLayer = window.dataLayer || [];
+        function gtag() { dataLayer.push(arguments); }
+        gtag('js', new Date());
 
-  gtag('config', 'G-3GE076J7DJ');
-</script>
+        gtag('config', 'G-3GE076J7DJ');
+    </script>
 </head>
 
 <body>
@@ -106,7 +110,8 @@
                         <div class="accordion-item" id="punishmentItem" style="display:none;">
                             <h2 class="accordion-header" id="heading3">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#collapsePunishment" aria-expanded="false" aria-controls="collapsePunishment">
+                                    data-bs-target="#collapsePunishment" aria-expanded="false"
+                                    aria-controls="collapsePunishment">
                                     裁罰
                                 </button>
                             </h2>
@@ -118,7 +123,8 @@
                         <div class="accordion-item" id="accordion109">
                             <h2 class="accordion-header" id="heading4">
                                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#collapseSlip109" aria-expanded="false" aria-controls="collapseSlip109">
+                                    data-bs-target="#collapseSlip109" aria-expanded="false"
+                                    aria-controls="collapseSlip109">
                                     109學年度收費
                                 </button>
                             </h2>
@@ -138,7 +144,8 @@
                 <h1 class="sidebar-header"><span id="weekTitle">說明</span><span class="sidebar-close"><i
                             class="fa fa-caret-left"></i></span></h1>
                 <div>
-                    <p>每個三角形代表一間幼兒園，跟著三角形的數字是該幼兒園的最低每月收費，個別幼兒園可能因為年齡不同而有不同的收費，這個數字只試算最低的那個年齡。三角形的顏色代表幼兒園類型，顏色可以參考下面說明：</p>
+                    <p>每個三角形代表一間幼兒園，跟著三角形的數字是該幼兒園的最低每月收費，個別幼兒園可能因為年齡不同而有不同的收費，這個數字只試算最低的那個年齡。三角形的顏色代表幼兒園類型，顏色可以參考下面說明：
+                    </p>
                     <ul>
                         <li><span style="color:#48c774">▲</span>：公立</li>
                         <li><span style="color:#57ffdd">▲</span>：私立</li>
@@ -167,7 +174,14 @@
                 <div class="mb-3">
                     <select id="town" class="form-control"></select>
                 </div>
-                
+                <hr />
+                <div class="card">
+                    <h5 class="card-title">搜尋</h5>
+                    <div class="form-group">
+                        <label for="findPoint">名稱或住址</label>
+                        <input type="text" id="findPoint" name="findPoint" class="form-control"></input>
+                    </div>
+                </div>
             </div>
             <div class="sidebar-pane" id="fb">
                 <div class="fb-page" data-href="https://www.facebook.com/k.olc.tw/" data-tabs="timeline"
@@ -185,11 +199,14 @@
         <a href="https://facebook.com/k.olc.tw/" target="_blank" class="btn btn-lg alert-primary">北中西區台南市議員參選人江明宗 製作</a>
     </div>
     <script src="js/jquery.min.js" type="text/javascript"></script>
+    <script src="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-p34f1UUtsS3wqzfto5wAAmdvj+osOnFyQFpp4Ua3gs/ZVWx6oOypYoCJhGGScy+8"
         crossorigin="anonymous"></script>
+    <script src="js/routie.min.js" type="text/javascript"></script>
     <script src="js/ol.js" type="text/javascript"></script>
     <script src="js/ol5-sidebar.min.js" type="text/javascript"></script>
     <script src="js/main.js" type="text/javascript"></script>
 </body>
+
 </html>
