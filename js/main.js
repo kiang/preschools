@@ -244,7 +244,11 @@ function showPoint(pointId) {
       }
       message += '<tr><th scope="row">電話</th><td>' + p.tel + '</td></tr>';
       message += '<tr><th scope="row">住址</th><td>' + p.city + p.town + p.address + '</td></tr>';
-      message += '<tr><th scope="row">類型</th><td>' + p.type + '</td></tr>';
+      if (p.type === '私立' && p.pre_public !== '無') {
+        message += '<tr><th scope="row">類型</th><td>' + p.type + '(準公共化)</td></tr>';
+      } else {
+        message += '<tr><th scope="row">類型</th><td>' + p.type + '</td></tr>';
+      }
       message += '<tr><th scope="row">核定人數</th><td>' + p.count_approved + '</td></tr>';
       if (p.size) {
         message += '<tr><th scope="row">全園總面積</th><td>' + p.size + '</td></tr>';
