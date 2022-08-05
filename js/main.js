@@ -82,6 +82,7 @@ var sidebarTitle = document.getElementById('sidebarTitle');
 var content = document.getElementById('infoBox');
 var slip = document.getElementById('slipBox');
 var slip109 = document.getElementById('slipBox109');
+var slip110 = document.getElementById('slipBox110');
 
 var appView = new ol.View({
   center: ol.proj.fromLonLat([120.221507, 23.000694]),
