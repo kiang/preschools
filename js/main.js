@@ -278,33 +278,29 @@ function showPoint(pointId) {
       sidebarTitle.innerHTML = p.title;
       content.innerHTML = message;
 
-      if (p.penalty === '有') {
-        $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/data/punish/' + p.city + '/' + p.title + '.json', {}, function (r) {
-          var message = '';
-          for (let line of r) {
-            message += '<table class="table table-dark"><tbody>';
-            message += '<tr><td>' + line[0] + '</td></tr>';
-            message += '<tr><td>' + line[1] + '</td></tr>';
-            message += '<tr><td>' + line[2] + '</td></tr>';
-            message += '<tr><td>' + line[3] + '</td></tr>';
-            message += '<tr><td>' + line[4] + '</td></tr>';
-            message += '<tr><td>' + line[5] + '</td></tr>';
-            message += '</tbody></table>';
-          }
-          $('#punishmentBox').html(message);
-        });
+      $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/data/punish/' + p.city + '/' + p.title + '.json', {}, function (r) {
+        var message = '';
+        for (let line of r) {
+          message += '<table class="table table-dark"><tbody>';
+          message += '<tr><td>' + line[0] + '</td></tr>';
+          message += '<tr><td>' + line[1] + '</td></tr>';
+          message += '<tr><td>' + line[2] + '</td></tr>';
+          message += '<tr><td>' + line[3] + '</td></tr>';
+          message += '<tr><td>' + line[4] + '</td></tr>';
+          message += '<tr><td>' + line[5] + '</td></tr>';
+          message += '</tbody></table>';
+        }
+        $('#punishmentBox').html(message);
         $('#punishmentItem').show();
-      } else {
-        $('#punishmentBox').html('');
-        $('#punishmentItem').hide();
-      }
+      });
+
 
       for (let slipYear of slipYears) {
         $('#accordion' + slipYear).hide();
         $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/data/slip' + slipYear + '/' + p.city + '/' + p.title + '.json', {}, function (r) {
           var message = '<table class="table table-dark">';
           message += '<tbody>';
-          
+
           for (y in r.slip) {
             for (p in r.slip[y]) {
               message += '<tr><td colspan="2">';
