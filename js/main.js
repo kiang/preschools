@@ -279,6 +279,7 @@ function showPoint(pointId) {
       content.innerHTML = message;
 
       $('#punishmentBox').html('');
+      $('#punishmentItem').hide();
       $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/data/punish/' + p.city + '/' + p.title + '.json', {}, function (r) {
         var message = '';
         for (let line of r) {
