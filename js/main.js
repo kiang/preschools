@@ -228,6 +228,7 @@ function showPoint(pointId) {
   for (k in features) {
     var p = features[k].getProperties();
     if (p.id === pointId) {
+      pointFound = true;
       currentFeature = features[k];
       features[k].setStyle(pointStyleFunction(features[k]));
       if (false !== previousFeature) {
@@ -290,18 +291,25 @@ function showPoint(pointId) {
           message += '<tr><td>' + line[3] + '</td></tr>';
           message += '<tr><td>' + line[4] + '</td></tr>';
           message += '<tr><td>' + line[5] + '</td></tr>';
+          message += '<tr><td id="' + line[1] + '"></td></tr>';
           message += '</tbody></table>';
         }
         $('#punishmentBox').html(message);
         $('#punishmentItem').show();
       });
+      setTimeout((p) => {
+        $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/data/punish_note/' + p.city + '/' + p.title + '.json', {}, function (r) {
+          for (let line of r) {
+            $('#' + line[0]).html('備註：' + line[1]);
+          }
+        });
+      }, 300, p);
 
       $('#vehicleBox').html('');
       $('#vehicleItem').hide();
       if (vehicles[p.id]) {
         var vMessage = '';
         for (let line of vehicles[p.id]) {
-          console.log(line);
           vMessage += '<table class="table table-dark"><tbody>';
           vMessage += '<tr><th>車牌</th><td>' + line.plate_no + '</td></tr>';
           vMessage += '<tr><th>出廠年月</th><td>' + line.on_production_date + '</td></tr>';
