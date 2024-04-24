@@ -374,6 +374,7 @@ function showPoint(pointId) {
           $('#accordion' + slipYear).show();
         });
       }
+      $('#linkPreschool').attr('href', 'https://preschools.olc.tw/preschools/view/' + pointId).html('詳細資訊');
 
       sidebarTitle.innerHTML = p.title;
       content.innerHTML = message;
