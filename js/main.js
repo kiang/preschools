@@ -44,21 +44,26 @@ function pointStyleFunction(f) {
 
     radius = 20;
   }
-  switch (p.type) {
-    case '公立':
-      color = '#48c774';
-      break;
-    case '私立':
-      if (p.pre_public !== '無') {
-        color = '#57ffdd';
-      } else {
-        color = '#57ddff';
-      }
-      break;
-    case '非營利':
-      color = '#ffdd57';
-      break;
+  if (!p.is_active) {
+    color = '#cccccc';
+  } else {
+    switch (p.type) {
+      case '公立':
+        color = '#48c774';
+        break;
+      case '私立':
+        if (p.pre_public !== '無') {
+          color = '#57ffdd';
+        } else {
+          color = '#57ddff';
+        }
+        break;
+      case '非營利':
+        color = '#ffdd57';
+        break;
+    }
   }
+
   let pointStyle = new ol.style.Style({
     image: new ol.style.RegularShape({
       radius: radius,
