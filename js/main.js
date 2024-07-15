@@ -247,7 +247,7 @@ function showPoint(pointId) {
       message += '<tbody>';
       message += '<tr><th scope="row" style="width: 100px;">名稱</th><td>' + p.title + '</td></tr>';
       if (p.owner) {
-        message += '<tr><th scope="row">負責人</th><td>' + p.owner + '</td></tr>';
+        message += '<tr><th scope="row">負責人</th><td><a href="https://preschools.olc.tw/owners/' + p.owner + '">' + p.owner + '</a></td></tr>';
       }
       message += '<tr><th scope="row">電話</th><td>' + p.tel + '</td></tr>';
       message += '<tr><th scope="row">住址</th><td>' + p.city + p.town + p.address + '</td></tr>';
