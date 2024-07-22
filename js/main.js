@@ -382,6 +382,7 @@ function showPoint(pointId) {
       $('#linkPreschool').attr('href', 'https://preschools.olc.tw/preschools/view/' + pointId).html('詳細資訊');
 
       sidebarTitle.innerHTML = p.title;
+      document.title = p.title + ' - 台灣幼兒園地圖';
       content.innerHTML = message;
     }
   }
