@@ -40,6 +40,22 @@
         .ui-front {
             z-index: 9999;
         }
+
+        .sidebar-pane {
+            background-color: #f8f9fa;
+        }
+        .sidebar-header {
+            background-color: #e9ecef;
+            padding: 10px 15px;
+            font-size: 1.2rem;
+        }
+        #settings .form-label {
+            font-weight: bold;
+        }
+        #monthlyFeeValue {
+            min-width: 60px;
+            text-align: center;
+        }
     </style>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-8T3Z1R9PKP"></script>
@@ -216,7 +232,7 @@
                     <p>最低每月收費計算方式</p>
                     <ul>
                         <li>如果是準公共化，費用 3000 + (課後延托費 + 家長會費) / 月份數</li>
-                        <li>如果有列舉 "全學期總收費" ，會直接以該欄位數字除以月份數+ (課後延托費 + 家長會費) / 月份數，私立一般都是 6 個月，公立則是有 4.6~4.7 不等的數字</li>
+                        <li>如果有列舉 "全學期總收費" ，會直接以該欄數字除以月份數+ (課後延托費 + 家長會費) / 月份數，私立一般都是 6 個月，公立則是有 4.6~4.7 不等的數字</li>
                         <li>如果上述都不是就會加總 學費+雜費+材料費+活動費+午餐費+點心費+課後延托費+家長會費 然後除以月份數</li>
                     </ul>
                     注意事項：
@@ -227,32 +243,35 @@
                 </div>
             </div>
             <div class="sidebar-pane" id="settings">
-                <h1 class="sidebar-header"><span id="weekTitle">設定</span><span class="sidebar-close"><i
-                            class="fa fa-caret-left"></i></span></h1>
-                <div>
-                    <a href="#" class="btn btn-primary btn-lg btn-block" id="btn-geolocation">回到目前位置</a>
-                </div>
-                <hr />
-                <h3>過濾資料</h3>
-                <div class="mb-3">
-                    <select id="city" class="form-control"></select>
-                </div>
-                <div class="mb-3">
-                    <select id="town" class="form-control"></select>
-                </div>
-                <hr />
-                <div class="card">
-                    <h5 class="card-title">搜尋</h5>
-                    <div class="form-group">
-                        <label for="findPoint">名稱或住址</label>
-                        <input type="text" id="findPoint" name="findPoint" class="form-control"></input>
+                <h1 class="sidebar-header">設定<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h1>
+                <div class="p-3">
+                    <button class="btn btn-primary btn-block mb-4" id="btn-geolocation">
+                        <i class="fa fa-location-arrow mr-2"></i> 回到目前位置
+                    </button>
+
+                    <h5 class="mb-3">過濾資料</h5>
+                    <div class="mb-3">
+                        <label for="city" class="form-label">縣市</label>
+                        <select id="city" class="form-select"></select>
                     </div>
-                </div>
-                <!-- New monthly fee range filter -->
-                <div>
-                    <label for="monthlyFeeRange">每月收費:</label>
-                    <input type="range" id="monthlyFeeRange" min="0" max="20000" step="100" value="20000">
-                    <span id="monthlyFeeValue">20000</span>
+                    <div class="mb-3">
+                        <label for="town" class="form-label">鄉鎮市區</label>
+                        <select id="town" class="form-select"></select>
+                    </div>
+
+                    <div class="mb-4">
+                        <label for="monthlyFeeRange" class="form-label">每月收費上限</label>
+                        <div class="d-flex align-items-center">
+                            <input type="range" class="form-range flex-grow-1 me-2" id="monthlyFeeRange" min="0" max="20000" step="100" value="20000">
+                            <span id="monthlyFeeValue" class="badge bg-primary">20000</span>
+                        </div>
+                    </div>
+
+                    <h5 class="mb-3">搜尋</h5>
+                    <div class="mb-3">
+                        <label for="findPoint" class="form-label">名稱或住址</label>
+                        <input type="text" id="findPoint" name="findPoint" class="form-control" placeholder="輸入幼兒園名稱或地址">
+                    </div>
                 </div>
             </div>
             <div class="sidebar-pane" id="fb">
