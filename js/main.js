@@ -14,12 +14,17 @@ for (var z = 0; z < 20; ++z) {
 
 var cityList = {};
 var filterCity = '', filterTown = '';
+var maxMonthlyFee = 20000; // New variable to store the maximum monthly fee
+
 function pointStyleFunction(f) {
   var p = f.getProperties(), color, stroke, radius, fPoints = 3;
   if (filterCity !== '' && p.city !== filterCity) {
     return null;
   }
   if (filterTown !== '' && p.town !== filterTown) {
+    return null;
+  }
+  if (parseInt(p.monthly) > maxMonthlyFee) {
     return null;
   }
   if (f === currentFeature) {
@@ -111,6 +116,13 @@ $('select#city').change(function () {
 });
 $('select#town').change(function () {
   filterTown = $(this).val();
+  vectorSource.refresh();
+});
+
+// Add event listener for the monthly fee range slider
+$('#monthlyFeeRange').on('input', function() {
+  maxMonthlyFee = parseInt($(this).val()) || 0;
+  $('#monthlyFeeValue').text(maxMonthlyFee);
   vectorSource.refresh();
 });
 
@@ -397,8 +409,14 @@ $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/preschools.json', {}, funct
   var vFormat = vectorSource.getFormat();
   vectorSource.addFeatures(vFormat.readFeatures(pointsFc));
 
+  // Find the maximum monthly fee to set the range slider's max value
+  var maxFee = 0;
   for (k in pointsFc.features) {
     var p = pointsFc.features[k].properties;
+    var monthlyFee = parseInt(p.monthly);
+    if (!isNaN(monthlyFee) && monthlyFee > maxFee) {
+      maxFee = monthlyFee;
+    }
     findTerms.push({
       value: p.id,
       label: p.title + ' ' + p.address
@@ -415,6 +433,12 @@ $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/preschools.json', {}, funct
     cityOptions += '<option>' + city + '</option>';
   }
   $('select#city').html(cityOptions);
+
+  // Update the range slider's max value and initial value
+  $('#monthlyFeeRange').attr('max', maxFee);
+  $('#monthlyFeeRange').val(maxFee);
+  $('#monthlyFeeValue').text(maxFee);
+  maxMonthlyFee = maxFee;
 
   routie(':pointId', showPoint);
   routie('pos/:lng/:lat', showPos);
