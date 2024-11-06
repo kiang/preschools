@@ -16,6 +16,9 @@ var cityList = {};
 var filterCity = '', filterTown = '';
 var maxMonthlyFee = 20000; // New variable to store the maximum monthly fee
 
+var punishmentData = {};
+var punishmentTerms = [];
+
 function pointStyleFunction(f) {
   var p = f.getProperties(), color, stroke, radius, fPoints = 3;
   if (filterCity !== '' && p.city !== filterCity) {
@@ -456,4 +459,28 @@ $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/preschools.json', {}, funct
 var vehicles = {};
 $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/kids_vehicles.json', {}, function (c) {
   vehicles = c;
+});
+
+$.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/punish_all.json', {}, function(data) {
+    punishmentData = data;
+    // Create search terms from punishment data
+    for (let key in data) {
+        for (let punishment of data[key]) {
+            punishmentTerms.push({
+                value: punishment.id,
+                label: punishment.date + key + ' - ' + punishment.punishment + '(' + punishment.law + ')'
+            });
+        }
+    }
+    
+    // Initialize autocomplete for punishment search
+    $('#findPunish').autocomplete({
+        source: punishmentTerms,
+        select: function(event, ui) {
+            var targetHash = '#' + ui.item.value;
+            if (window.location.hash !== targetHash) {
+                window.location.hash = targetHash;
+            }
+        }
+    });
 });
