@@ -422,7 +422,7 @@ $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/preschools.json', {}, funct
     }
     findTerms.push({
       value: p.id,
-      label: p.title + ' ' + p.address
+      label: p.title + '(' + p.owner + ') ' + p.address
     });
     if (!cityList[p.city]) {
       cityList[p.city] = {};
