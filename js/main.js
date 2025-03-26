@@ -266,6 +266,9 @@ function showPoint(pointId) {
       }
       message += '<tr><th scope="row">電話</th><td>' + p.tel + '</td></tr>';
       message += '<tr><th scope="row">住址</th><td>' + p.city + p.town + p.address + '</td></tr>';
+      if (p.city === '新竹縣' && p.town === '竹北市') {
+        message += '<tr><td colspan="2"><a href="https://www.facebook.com/zhubeibetter" target="_blank"><img src="img/zhubeibetter.jpg" alt="竹北幼兒園" style="max-width: 100%; height: auto;"></a></td></tr>';
+      }
       if (p.type === '私立' && p.pre_public !== '無') {
         message += '<tr><th scope="row">類型</th><td>' + p.type + '(準公共化)</td></tr>';
       } else {
