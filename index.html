@@ -51,6 +51,78 @@
             min-width: 60px;
             text-align: center;
         }
+        
+        .map-legend {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(255, 255, 255, 0.95);
+            padding: 12px 16px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.2);
+            font-size: 12px;
+            z-index: 1000;
+            max-width: 600px;
+            backdrop-filter: blur(5px);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+        
+        .map-legend h6 {
+            margin: 0 0 8px 0;
+            font-weight: bold;
+            color: #2c3e50;
+            font-size: 13px;
+        }
+        
+        .legend-content {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 16px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            margin: 0;
+            font-size: 11px;
+            color: #34495e;
+            white-space: nowrap;
+        }
+        
+        .legend-marker {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            flex-shrink: 0;
+        }
+        
+        .legend-toggle {
+            position: absolute;
+            top: 5px;
+            right: 5px;
+            background: none;
+            border: none;
+            font-size: 14px;
+            cursor: pointer;
+            color: #7f8c8d;
+            padding: 2px;
+        }
+        
+        .legend-toggle:hover {
+            color: #2c3e50;
+        }
+        
+        .map-legend.collapsed .legend-content {
+            display: none;
+        }
+        
+        .map-legend.collapsed {
+            padding: 8px;
+        }
     </style>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-8T3Z1R9PKP"></script>
@@ -215,17 +287,8 @@
                 <h1 class="sidebar-header"><span id="weekTitle">說明</span><span class="sidebar-close"><i
                             class="fa fa-caret-left"></i></span></h1>
                 <div>
-                    <p>每個圓形標記代表一間幼兒園，標記旁的數字是該幼兒園的最低每月收費，個別幼兒園可能因為年齡不同而有不同的收費，這個數字只試算最低的那個年齡。標記的顏色代表幼兒園類型，顏色可以參考下面說明：
+                    <p>每個圓形標記代表一間幼兒園，標記旁的數字是該幼兒園的最低每月收費，個別幼兒園可能因為年齡不同而有不同的收費，這個數字只試算最低的那個年齡。標記的顏色代表幼兒園類型，詳細說明請參考地圖底部的圖例。
                     </p>
-                    <ul>
-                        <li><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#27ae60;border:2px solid #fff;vertical-align:middle;"></span>：公立</li>
-                        <li><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#1abc9c;border:2px solid #fff;vertical-align:middle;"></span>：準公共化</li>
-                        <li><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#3498db;border:2px solid #fff;vertical-align:middle;"></span>：私立</li>
-                        <li><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#f39c12;border:2px solid #fff;vertical-align:middle;"></span>：非營利</li>
-                        <li><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#95a5a6;border:2px solid #fff;vertical-align:middle;"></span>：停業</li>
-                        <li><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#3498db;border:3px solid #e74c3c;vertical-align:middle;"></span>：有裁罰記錄（紅色外框）</li>
-                        <li><span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:#3399CC;border:2px solid #fff;vertical-align:middle;"></span>：你目前所在位置（需要同意網站授權）</li>
-                    </ul>
                     <p>最低每月收費計算方式</p>
                     <ul>
                         <li>如果是準公共化，費用 3000 + (課後延托費 + 家長會費) / 月份數</li>
@@ -297,6 +360,43 @@
     </div>
 
     <div id="map" class="sidebar-map"></div>
+    
+    <!-- Map Legend -->
+    <div class="map-legend" id="mapLegend">
+        <button class="legend-toggle" onclick="toggleLegend()">−</button>
+        <div class="legend-content">
+            <h6 style="margin-right: 16px;">幼兒園類型：</h6>
+            <div class="legend-item">
+                <span class="legend-marker" style="background:#27ae60;border:2px solid #fff;"></span>
+                公立
+            </div>
+            <div class="legend-item">
+                <span class="legend-marker" style="background:#1abc9c;border:2px solid #fff;"></span>
+                準公共化
+            </div>
+            <div class="legend-item">
+                <span class="legend-marker" style="background:#3498db;border:2px solid #fff;"></span>
+                私立
+            </div>
+            <div class="legend-item">
+                <span class="legend-marker" style="background:#f39c12;border:2px solid #fff;"></span>
+                非營利
+            </div>
+            <div class="legend-item">
+                <span class="legend-marker" style="background:#95a5a6;border:2px solid #fff;"></span>
+                停業
+            </div>
+            <div class="legend-item">
+                <span class="legend-marker" style="background:#3498db;border:3px solid #e74c3c;"></span>
+                有裁罰記錄
+            </div>
+            <div class="legend-item">
+                <span class="legend-marker" style="background:#3399CC;border:2px solid #fff;"></span>
+                目前位置
+            </div>
+        </div>
+    </div>
+    
     <div style="position: fixed; bottom: 0px; left: 0px;">
         <a href="https://facebook.com/k.olc.tw/" target="_blank" class="btn btn-lg alert-primary">北中西區台南市議員參選人江明宗 製作</a>
     </div>

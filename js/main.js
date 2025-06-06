@@ -540,3 +540,17 @@ $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/punish_all.json', {}, funct
         }
     });
 });
+
+// Legend toggle functionality
+function toggleLegend() {
+  var legend = document.getElementById('mapLegend');
+  var toggleBtn = legend.querySelector('.legend-toggle');
+  
+  if (legend.classList.contains('collapsed')) {
+    legend.classList.remove('collapsed');
+    toggleBtn.textContent = '−';
+  } else {
+    legend.classList.add('collapsed');
+    toggleBtn.textContent = '+';
+  }
+}
