@@ -20,7 +20,7 @@ var punishmentData = {};
 var punishmentTerms = [];
 
 function pointStyleFunction(f) {
-  var p = f.getProperties(), color, stroke, radius, fPoints = 3;
+  var p = f.getProperties(), color, stroke, radius, shadowColor;
   if (filterCity !== '' && p.city !== filterCity) {
     return null;
   }
@@ -30,71 +30,119 @@ function pointStyleFunction(f) {
   if (parseInt(p.monthly) > maxMonthlyFee) {
     return null;
   }
-  if (f === currentFeature) {
+  
+  var isSelected = f === currentFeature;
+  var hasPenalty = p.penalty === '有';
+  
+  // Enhanced styling based on state
+  if (isSelected) {
     stroke = new ol.style.Stroke({
-      color: 'rgba(255,0,255,0.5)',
-      width: 10
+      color: '#ff6b35',
+      width: 4
     });
-    radius = 35;
-    fPoints = 5;
+    radius = 16;
+    shadowColor = 'rgba(255, 107, 53, 0.3)';
   } else {
-    if (p.penalty === '有') {
-      stroke = new ol.style.Stroke({
-        color: '#f00',
-        width: 2
-      });
-    } else {
-      stroke = new ol.style.Stroke({
-        color: '#fff',
-        width: 2
-      });
-    }
-
-    radius = 20;
+    stroke = new ol.style.Stroke({
+      color: hasPenalty ? '#e74c3c' : '#ffffff',
+      width: hasPenalty ? 3 : 2
+    });
+    radius = 12;
+    shadowColor = hasPenalty ? 'rgba(231, 76, 60, 0.3)' : 'rgba(0, 0, 0, 0.2)';
   }
+
+  // Improved color scheme with better contrast
   if (!p.is_active) {
-    color = '#cccccc';
+    color = '#95a5a6';
+    shadowColor = 'rgba(149, 165, 166, 0.3)';
   } else {
     switch (p.type) {
       case '公立':
-        color = '#48c774';
+        color = '#27ae60'; // Darker green for better visibility
         break;
       case '私立':
         if (p.pre_public !== '無') {
-          color = '#57ffdd';
+          color = '#1abc9c'; // Teal for semi-public
         } else {
-          color = '#57ddff';
+          color = '#3498db'; // Blue for private
         }
         break;
       case '非營利':
-        color = '#ffdd57';
+        color = '#f39c12'; // Orange for non-profit
         break;
+      default:
+        color = '#7f8c8d';
     }
   }
 
+  // Create main marker style with shadow effect
   let pointStyle = new ol.style.Style({
-    image: new ol.style.RegularShape({
+    image: new ol.style.Circle({
       radius: radius,
-      points: fPoints,
       fill: new ol.style.Fill({
         color: color
       }),
       stroke: stroke
-    })
+    }),
+    // Add shadow using a larger circle behind
+    zIndex: isSelected ? 1000 : 100
   });
 
-  // Only show text if zoom level is 15 or greater
-  if (map.getView().getZoom() >= 15) {
-    pointStyle.setText(new ol.style.Text({
-      font: '14px "Open Sans", "Arial Unicode MS", "sans-serif"',
+  // Add inner dot for better definition
+  let innerDotStyle = new ol.style.Style({
+    image: new ol.style.Circle({
+      radius: radius * 0.4,
       fill: new ol.style.Fill({
-        color: 'rgba(0,0,255,0.7)'
-      }),
-      text: '$' + p.monthly.toString() + '/月'
-    }));
+        color: 'rgba(255, 255, 255, 0.8)'
+      })
+    }),
+    zIndex: isSelected ? 1001 : 101
+  });
+
+  // Enhanced text styling that appears at zoom 13+
+  if (map.getView().getZoom() >= 13) {
+    var textColor = '#2c3e50';
+    var backgroundColor = 'rgba(255, 255, 255, 0.9)';
+    
+    if (map.getView().getZoom() >= 15) {
+      // Show full price info at high zoom
+      pointStyle.setText(new ol.style.Text({
+        font: 'bold 12px "Arial", sans-serif',
+        fill: new ol.style.Fill({
+          color: textColor
+        }),
+        stroke: new ol.style.Stroke({
+          color: backgroundColor,
+          width: 3
+        }),
+        text: '$' + p.monthly.toString() + '/月',
+        offsetY: radius + 15,
+        textAlign: 'center',
+        backgroundFill: new ol.style.Fill({
+          color: backgroundColor
+        }),
+        padding: [2, 4, 2, 4]
+      }));
+    } else {
+      // Show simplified price at medium zoom
+      pointStyle.setText(new ol.style.Text({
+        font: 'bold 10px "Arial", sans-serif',
+        fill: new ol.style.Fill({
+          color: textColor
+        }),
+        stroke: new ol.style.Stroke({
+          color: backgroundColor,
+          width: 2
+        }),
+        text: '$' + (Math.round(p.monthly / 1000) * 1000).toString(),
+        offsetY: radius + 12,
+        textAlign: 'center'
+      }));
+    }
   }
 
-  return pointStyle;
+  // Return array of styles for layered effect
+  return [pointStyle, innerDotStyle];
 }
 var sidebarTitle = document.getElementById('sidebarTitle');
 var content = document.getElementById('infoBox');
