@@ -123,6 +123,23 @@
         .map-legend.collapsed {
             padding: 8px;
         }
+        
+        /* Mobile responsive adjustments */
+        @media (max-width: 768px) {
+            .map-legend {
+                bottom: 60px; /* Increased bottom margin for mobile to prevent overlap */
+                max-width: 90%;
+                font-size: 11px;
+            }
+            
+            .legend-item {
+                font-size: 10px;
+            }
+            
+            .legend-content {
+                gap: 8px;
+            }
+        }
     </style>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-8T3Z1R9PKP"></script>
