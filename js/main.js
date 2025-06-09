@@ -212,33 +212,8 @@ var map = new ol.Map({
 });
 
 map.addControl(sidebar);
-
-// Ensure map canvas gets proper focus to handle clicks
-map.getViewport().addEventListener('click', function() {
-  map.getTargetElement().focus();
-}, true);
-
 var pointClicked = false;
 map.on('singleclick', function (evt) {
-  // Prevent AdSense or other scripts from interfering
-  if (evt && evt.preventDefault) {
-    evt.preventDefault();
-  }
-  if (evt && evt.stopPropagation) {
-    evt.stopPropagation();
-  }
-  
-  // Ensure the event target is actually the map
-  if (evt.originalEvent && evt.originalEvent.target) {
-    var target = evt.originalEvent.target;
-    // Skip if click is on AdSense or other overlay elements
-    if (target.closest('.adsbygoogle') || 
-        target.closest('[data-google-query-id]') ||
-        target.classList.contains('adsbygoogle')) {
-      return;
-    }
-  }
-  
   content.innerHTML = '';
   pointClicked = false;
   map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
