@@ -140,6 +140,23 @@
                 gap: 8px;
             }
         }
+        
+        /* Prevent AdSense from interfering with map interactions */
+        .adsbygoogle {
+            pointer-events: none !important;
+            position: fixed !important;
+            z-index: 999 !important;
+        }
+        
+        #map {
+            pointer-events: auto !important;
+            z-index: 1 !important;
+        }
+        
+        /* Ensure map canvas receives clicks properly */
+        #map canvas {
+            pointer-events: auto !important;
+        }
     </style>
     <!-- Google tag (gtag.js) -->
     <script async src="https://www.googletagmanager.com/gtag/js?id=G-8T3Z1R9PKP"></script>
