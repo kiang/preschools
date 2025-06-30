@@ -154,51 +154,17 @@
             background: white;
             border-radius: 8px;
             max-width: 350px;
-            max-height: 400px;
+            max-height: 80vh;
             overflow-y: auto;
             box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
             position: absolute;
             pointer-events: auto;
             border: 2px solid #007bff;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Arrow pointing left (popup on right side of marker) */
-        .popup-content::before {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 0;
-            border: 10px solid transparent;
-            border-right-color: #007bff;
-            left: -22px;
-            top: 20px;
-        }
-
-        .popup-content::after {
-            content: '';
-            position: absolute;
-            width: 0;
-            height: 0;
-            border: 8px solid transparent;
-            border-right-color: white;
-            left: -16px;
-            top: 22px;
-        }
-
-        /* Arrow pointing right (popup on left side of marker) */
-        .popup-content.arrow-right::before {
-            border-right-color: transparent !important;
-            border-left-color: #007bff !important;
-            left: auto !important;
-            right: -22px !important;
-        }
-
-        .popup-content.arrow-right::after {
-            border-right-color: transparent !important;
-            border-left-color: white !important;
-            left: auto !important;
-            right: -16px !important;
-        }
+        /* Arrow styles removed since popup is now centered */
 
         .popup-header {
             padding: 20px;
@@ -212,6 +178,8 @@
 
         .popup-body {
             padding: 20px;
+            overflow-y: auto;
+            flex: 1;
         }
 
         .popup-close {

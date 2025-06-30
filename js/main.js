@@ -262,15 +262,22 @@ map.on('singleclick', function (evt) {
       
       var p = feature.getProperties();
       
-      // Show popup at click position first
-      showPopup(p, evt.pixel);
+      // Center the map on the marker first
+      var targetCoords = feature.getGeometry().getCoordinates();
+      appView.setCenter(targetCoords);
       
-      // Update URL hash (this will trigger showPoint but we'll prevent duplicate popup)
+      // Show popup centered on screen after a brief delay
+      setTimeout(function() {
+        showPopup(p, evt.pixel);
+      }, 200);
+      
+      // Update URL hash and page title
       var targetHash = '#' + p.id;
       if (window.location.hash !== targetHash) {
         isHashUpdate = true;
         window.location.hash = targetHash;
       }
+      document.title = p.title + ' - 台灣幼兒園地圖';
       
       pointClicked = true;
     }
@@ -427,76 +434,39 @@ function showPopup(p, clickPixel) {
   
   popupInfo.innerHTML = message;
   
-  // Position the popup
-  console.log('Positioning popup, clickPixel provided:', !!clickPixel);
-  if (clickPixel) {
-    var mapElement = document.getElementById('map');
-    var mapRect = mapElement.getBoundingClientRect();
-    
-    var markerX = clickPixel[0] + mapRect.left;
-    var markerY = clickPixel[1] + mapRect.top;
-    
-    var viewportWidth = window.innerWidth;
-    var viewportHeight = window.innerHeight;
-    var popupWidth = 350; // max-width from CSS
-    var popupHeight = 400; // max-height from CSS
-    
-    var x, y;
-    var isOnLeft = false;
-    
-    // Standard side positioning
-    x = markerX + 30; // 30px offset to the right of marker
-    y = markerY - 20;  // 20px offset above marker
-    
-    // Adjust if popup would go off right edge
-    if (x + popupWidth > viewportWidth) {
-      x = markerX - popupWidth - 30; // Place to the left instead
-      isOnLeft = true;
-      popupContent.classList.add('arrow-right');
-      popupContent.classList.remove('arrow-left');
-    } else {
-      popupContent.classList.add('arrow-left');
-      popupContent.classList.remove('arrow-right');
-    }
-    
-    // Adjust if popup would go off bottom edge
-    if (y + popupHeight > viewportHeight) {
-      y = viewportHeight - popupHeight - 20;
-    }
-    
-    // Adjust if popup would go off top edge
-    if (y < 20) {
-      y = 20;
-    }
-    
-    popupContent.style.left = x + 'px';
-    popupContent.style.top = y + 'px';
-    
-    // Create connector line
-    var connector = document.getElementById('popupConnector');
-    if (!connector) {
-      connector = document.createElement('div');
-      connector.id = 'popupConnector';
-      connector.className = 'popup-connector';
-      popupOverlay.appendChild(connector);
-    }
-    
-    // Calculate line position and rotation
-    var popupCenterX = x + (isOnLeft ? popupWidth : 0);
-    var popupCenterY = y + 40; // Connect to upper part of popup
-    
-    var deltaX = markerX - popupCenterX;
-    var deltaY = markerY - popupCenterY;
-    var distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
-    var angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
-    
-    connector.style.left = Math.min(markerX, popupCenterX) + 'px';
-    connector.style.top = Math.min(markerY, popupCenterY) + 'px';
-    connector.style.width = distance + 'px';
-    connector.style.height = '3px';
-    connector.style.transformOrigin = '0 50%';
-    connector.style.transform = 'rotate(' + angle + 'deg)';
-    connector.style.display = 'block';
+  // Position the popup in center of screen
+  console.log('Positioning popup in center of screen');
+  var viewportWidth = window.innerWidth;
+  var viewportHeight = window.innerHeight;
+  var popupWidth = 350; // max-width from CSS
+  var popupMaxHeight = Math.floor(viewportHeight * 0.8); // 80vh from CSS
+  
+  // Center the popup
+  var x = (viewportWidth - popupWidth) / 2;
+  var y = (viewportHeight - popupMaxHeight) / 2;
+  
+  // Ensure minimum margins
+  x = Math.max(20, x);
+  y = Math.max(20, y);
+  
+  // Ensure popup doesn't go off edges
+  if (x + popupWidth > viewportWidth - 20) {
+    x = viewportWidth - popupWidth - 20;
+  }
+  if (y + popupMaxHeight > viewportHeight - 20) {
+    y = viewportHeight - popupMaxHeight - 20;
+  }
+  
+  popupContent.style.left = x + 'px';
+  popupContent.style.top = y + 'px';
+  
+  // Remove arrow classes since popup is centered
+  popupContent.classList.remove('arrow-left', 'arrow-right');
+  
+  // Hide connector line since popup is centered
+  var connector = document.getElementById('popupConnector');
+  if (connector) {
+    connector.style.display = 'none';
   }
   
   console.log('Setting popupOverlay display to block');
