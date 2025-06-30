@@ -11,7 +11,6 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <link href="//maxcdn.bootstrapcdn.com/font-awesome/4.1.0/css/font-awesome.min.css" rel="stylesheet">
     <link rel="stylesheet" href="css/ol.css" type="text/css">
-    <link rel="stylesheet" href="css/ol3-sidebar.min.css" type="text/css" />
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-wEmeIV1mKuiNpC+IOBjI7aAzPcEZeedi5yW5f2yOq55WWLwNGmvvx4Um1vskeMj0" crossorigin="anonymous">
     <link rel="stylesheet" href="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/themes/dark-hive/jquery-ui.min.css"
@@ -41,22 +40,6 @@
             z-index: 9999;
         }
 
-        .sidebar-pane {
-            background-color: #f8f9fa;
-        }
-        #fb {
-            height: 100% !important;
-        }
-        #fb .fb-page {
-            height: 100% !important;
-        }
-        #settings .form-label {
-            font-weight: bold;
-        }
-        #monthlyFeeValue {
-            min-width: 60px;
-            text-align: center;
-        }
         
         .map-legend {
             position: fixed;
@@ -146,6 +129,331 @@
                 gap: 8px;
             }
         }
+
+        /* Popup overlay styles */
+        .popup-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.3);
+            z-index: 10000;
+            display: none;
+        }
+
+        /* Connection line between marker and popup */
+        .popup-connector {
+            position: absolute;
+            background: #007bff;
+            z-index: 9999;
+            pointer-events: none;
+        }
+
+        .popup-content {
+            background: white;
+            border-radius: 8px;
+            max-width: 350px;
+            max-height: 400px;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            position: absolute;
+            pointer-events: auto;
+            border: 2px solid #007bff;
+        }
+
+        /* Arrow pointing left (popup on right side of marker) */
+        .popup-content::before {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border: 10px solid transparent;
+            border-right-color: #007bff;
+            left: -22px;
+            top: 20px;
+        }
+
+        .popup-content::after {
+            content: '';
+            position: absolute;
+            width: 0;
+            height: 0;
+            border: 8px solid transparent;
+            border-right-color: white;
+            left: -16px;
+            top: 22px;
+        }
+
+        /* Arrow pointing right (popup on left side of marker) */
+        .popup-content.arrow-right::before {
+            border-right-color: transparent !important;
+            border-left-color: #007bff !important;
+            left: auto !important;
+            right: -22px !important;
+        }
+
+        .popup-content.arrow-right::after {
+            border-right-color: transparent !important;
+            border-left-color: white !important;
+            left: auto !important;
+            right: -16px !important;
+        }
+
+        .popup-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            background: #f8f9fa;
+            border-radius: 8px 8px 0 0;
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .popup-body {
+            padding: 20px;
+        }
+
+        .popup-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .popup-close:hover {
+            color: #000;
+        }
+
+        .popup-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            padding-right: 40px;
+        }
+
+        .detail-button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 15px;
+            width: 100%;
+        }
+
+        .detail-button:hover {
+            background: #0056b3;
+        }
+
+        @media (max-width: 768px) {
+            .popup-content {
+                max-width: 95%;
+                max-height: 95%;
+                margin: 10px;
+            }
+            
+            .popup-header, .popup-body {
+                padding: 15px;
+            }
+        }
+
+        /* Filter button styles */
+        .filter-button {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 16px;
+            border-radius: 6px;
+            font-size: 16px;
+            cursor: pointer;
+            z-index: 1000;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .filter-button:hover {
+            background: #0056b3;
+        }
+
+        /* Filter popup styles */
+        .filter-popup {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 10001;
+            display: none;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .filter-content {
+            background: white;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            max-height: 80%;
+            overflow-y: auto;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+            position: relative;
+        }
+
+        .filter-header {
+            padding: 20px;
+            border-bottom: 1px solid #eee;
+            background: #f8f9fa;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .filter-body {
+            padding: 20px;
+        }
+
+        .filter-close {
+            position: absolute;
+            top: 15px;
+            right: 20px;
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .filter-close:hover {
+            color: #000;
+        }
+
+        .filter-title {
+            margin: 0;
+            font-size: 18px;
+            font-weight: bold;
+            color: #2c3e50;
+            padding-right: 40px;
+        }
+
+        .filter-section {
+            margin-bottom: 20px;
+        }
+
+        .filter-section h5 {
+            margin-bottom: 10px;
+            color: #2c3e50;
+            font-weight: bold;
+        }
+
+        .filter-section label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+        }
+
+        .filter-section select,
+        .filter-section input[type="text"],
+        .filter-section input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+        }
+
+        .fee-range-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .fee-range-container input[type="range"] {
+            flex: 1;
+        }
+
+        .fee-value {
+            background: #007bff;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 14px;
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .geolocation-btn {
+            background: #28a745;
+            color: white;
+            border: none;
+            padding: 10px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .geolocation-btn:hover {
+            background: #218838;
+        }
+
+        /* Fix autocomplete z-index to appear above popups */
+        .ui-autocomplete {
+            z-index: 10002 !important;
+            max-height: 200px;
+            overflow-y: auto;
+            background: white !important;
+            border: 1px solid #ddd !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15) !important;
+            color: #333 !important;
+        }
+
+        .ui-menu-item {
+            padding: 0 !important;
+            background: white !important;
+        }
+
+        .ui-menu-item-wrapper {
+            padding: 8px 12px !important;
+            border-bottom: 1px solid #f0f0f0 !important;
+            cursor: pointer !important;
+            background: white !important;
+            color: #333 !important;
+            text-decoration: none !important;
+        }
+
+        .ui-menu-item-wrapper:hover {
+            background-color: #f8f9fa !important;
+            color: #333 !important;
+        }
+
+        .ui-state-active,
+        .ui-menu-item-wrapper.ui-state-active {
+            background-color: #007bff !important;
+            color: white !important;
+            border-color: #007bff !important;
+        }
+
+        .ui-menu-item a {
+            color: #333 !important;
+            text-decoration: none !important;
+        }
+
+        .ui-menu-item a:hover {
+            color: #333 !important;
+        }
+
+        .ui-state-active a {
+            color: white !important;
+        }
         
     </style>
     <!-- Google tag (gtag.js) -->
@@ -170,167 +478,13 @@
             fjs.parentNode.insertBefore(js, fjs);
         }(document, 'script', 'facebook-jssdk'));
     </script>
-    <div id="sidebar" class="sidebar collapsed">
-        <!-- Nav tabs -->
-        <div class="sidebar-tabs">
-            <ul role="tablist">
-                <li><a href="#home" role="tab"><i class="fa fa-bars"></i></a></li>
-                <li><a href="#book" role="tab"><i class="fa fa-book"></i></a></li>
-                <li><a href="#settings" role="tab"><i class="fa fa-gear"></i></a></li>
-                <li><a href="https://github.com/kiang/preschools" role="tab" target="_blank"><i
-                            class="fa fa-github"></i></a></li>
-                <li><a href="#fb" role="tab"><i class="fa fa-facebook"></i></a></li>
-            </ul>
-        </div>
 
-        <!-- Tab panes -->
-        <div class="sidebar-content">
-            <div class="sidebar-pane" id="home">
-                <h1 class="sidebar-header"><span id="sidebarTitle">請點選地圖中的點</span><span class="sidebar-close"><i
-                            class="fa fa-caret-left"></i></span></h1>
-                <div id="sidebarContent">
-                    <div class="accordion" id="accordionMain">
-                        <div class="accordion-item">
-                            <h2 class="accordion-header" id="heading1">
-                                <button class="accordion-button" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#collapseInfo" aria-expanded="true" aria-controls="collapseInfo">
-                                    基本資料
-                                </button>
-                            </h2>
-                            <div id="collapseInfo" class="accordion-collapse collapse show" aria-labelledby="heading1"
-                                data-bs-parent="#accordionMain">
-                                <div class="accordion-body" id="infoBox"></div>
-                            </div>
-                        </div>
-                        <div class="accordion-item" id="accordion113">
-                            <h2 class="accordion-header" id="heading2">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#collapseSlip" aria-expanded="false" aria-controls="collapseSlip">
-                                    113學年度收費
-                                </button>
-                            </h2>
-                            <div id="collapseSlip" class="accordion-collapse collapse" aria-labelledby="heading2"
-                                data-bs-parent="#accordionMain">
-                                <div class="accordion-body" id="slipBox113"></div>
-                            </div>
-                        </div>
-                        <div class="accordion-item" id="punishmentItem" style="display:none;">
-                            <h2 class="accordion-header" id="heading3">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#collapsePunishment" aria-expanded="false"
-                                    aria-controls="collapsePunishment">
-                                    裁罰
-                                </button>
-                            </h2>
-                            <div id="collapsePunishment" class="accordion-collapse collapse" aria-labelledby="heading3"
-                                data-bs-parent="#accordionMain">
-                                <div class="accordion-body">
-                                    <div class="alert alert-danger" role="alert">
-                                        * 提醒： 裁罰條文是以當下法規進行裁處，條文編號會隨法規修正而有所變動，請記得留意裁罰日期。
-                                    </div>
-                                    
-                                    <div id="punishmentBox"></div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="accordion-item" id="vehicleItem" style="display:none;">
-                            <h2 class="accordion-header" id="heading3">
-                                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                                    data-bs-target="#collapseVehicle" aria-expanded="false"
-                                    aria-controls="collapseVehicle">
-                                    專車
-                                </button>
-                            </h2>
-                            <div id="collapseVehicle" class="accordion-collapse collapse" aria-labelledby="heading3"
-                                data-bs-parent="#accordionMain">
-                                <div class="accordion-body" id="vehicleBox"></div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div id="links" class="btn-group-vertical" role="group" style="width: 100%;">
-                    <a id="linkPreschool" class="btn btn-primary btn-lg btn-block"></a>
-                    <a href="https://github.com/kiang/preschools/issues" target="_blank"
-                        class="btn btn-primary btn-lg btn-block">網站問題反應</a>
-                </div>
-            </div>
-            <div class="sidebar-pane" id="book">
-                <h1 class="sidebar-header"><span id="weekTitle">說明</span><span class="sidebar-close"><i
-                            class="fa fa-caret-left"></i></span></h1>
-                <div>
-                    <p>每個圓形標記代表一間幼兒園，標記旁的數字是該幼兒園的最低每月收費，個別幼兒園可能因為年齡不同而有不同的收費，這個數字只試算最低的那個年齡。標記的顏色代表幼兒園類型，詳細說明請參考地圖底部的圖例。
-                    </p>
-                    <p>最低每月收費計算方式</p>
-                    <ul>
-                        <li>如果是準公共化，費用 3000 + (課後延托費 + 家長會費) / 月份數</li>
-                        <li>如果有列舉 "全學期總收費" ，會直接以該欄數字除以月份數+ (課後延托費 + 家長會費) / 月份數，私立一般都是 6 個月，公立則是有 4.6~4.7 不等的數字</li>
-                        <li>如果上述都不是就會加總 學費+雜費+材料費+活動費+午餐費+點心費+課後延托費+家長會費 然後除以月份數</li>
-                    </ul>
-                    注意事項：
-                    <ul>
-                        <li>試算出來的月收費只是一個參考，因為沒辦法清楚每個縣市是否有延伸自訂的作法</li>
-                        <li><a href="https://ap.ece.moe.edu.tw/webecems/pubSearch.aspx" target="_blank">資料來源</a></li>
-                    </ul>
-                    Q&A：
-                    <ul>
-                        <li>台灣幼兒園地圖是 2021 開始製作，因此在這個時間點之前的幼兒園資料是找不到的，像是台中豐原的一個體罰事件只能夠找到原地址的新幼兒園，舊名稱找不到是受限於資料範圍。</li>
-                        <li>幼兒園的裁罰都是以事件當下法規，許多人會直接用裁罰條文去對照最新法規，但近期 111 年就有一次修法，像是同樣第 29 條，修法前是沒有幫孩子保險，修法後卻包含性侵等行為，容易產生誤解，記得要留意裁罰當下的法規，地圖裁罰區也為此加入提醒文字。</li>
-                        <li>部分裁罰是老師個人行為造成，園方反而是第一時間依法通報，雖然仍有管理之責，但這樣願意面對問題的態度仍然值得嘉許，除了片面的裁罰資訊也不妨多花些時間側面了解個案造成原因。</li>
-                        <li>裁罰是有可能撤銷的，但政府公告資訊並不會提供個別裁罰撤銷的紀錄，因此我都會要求園方提供撤銷裁罰的公文，確認後手動調整裁罰資訊；案例不多，但只要有調整都會留下對應紀錄，不會有私自調整的情況。</li>
-                        <li>現行法規在變更幼兒園名稱或負責人後就會視為新的園所，台灣幼兒園地圖的作法是即使停業也保留原有裁罰資訊，但公告資訊並沒有足以直接把新舊資料串連起來的線索，大概只能勞煩家長多花點時間去找其他資訊作為參考。</li>
-                        <li>除了幼兒園，我也有製作托嬰中心地圖 ( https://tainan.olc.tw/p/babycare/ ) 與補習班地圖 ( https://kiang.github.io/afterschools/ )，但呈現的資訊會因為主管機關不同而有差異，期待未來可以有統一的作法，畢竟這些學習過程許多孩子都還不會清楚表達，需要一樣的關注。</li>
-                        <li>我(開發者)是台灣民眾黨黨代表，也曾代表民眾黨參選台南議員，台灣民眾黨立委與黨團在資料的取得與政策上都有提供過協助，我沒有需要切割；只是製作公民科技應用的基本原則是讓資料說話，我也並未受僱於任何人或單位進行這些開發工作，維運這些應用就是基於普世價值的基礎，歡迎用資料與技術交流討論，那些陰謀論或是只看政治立場的討論我大概就沒辦法花太多時間了。</li>
-                    </ul>
-                </div>
-            </div>
-            <div class="sidebar-pane" id="settings">
-                <h1 class="sidebar-header">設定<span class="sidebar-close"><i class="fa fa-caret-left"></i></span></h1>
-                <div class="p-3">
-                    <button class="btn btn-primary btn-block mb-4" id="btn-geolocation">
-                        <i class="fa fa-location-arrow mr-2"></i> 回到目前位置
-                    </button>
-
-                    <h5 class="mb-3">過濾資料</h5>
-                    <div class="mb-3">
-                        <label for="city" class="form-label">縣市</label>
-                        <select id="city" class="form-select"></select>
-                    </div>
-                    <div class="mb-3">
-                        <label for="town" class="form-label">鄉鎮市區</label>
-                        <select id="town" class="form-select"></select>
-                    </div>
-
-                    <div class="mb-4">
-                        <label for="monthlyFeeRange" class="form-label">每月收費上限</label>
-                        <div class="d-flex align-items-center">
-                            <input type="range" class="form-range flex-grow-1 me-2" id="monthlyFeeRange" min="0" max="20000" step="100" value="20000">
-                            <span id="monthlyFeeValue" class="badge bg-primary">20000</span>
-                        </div>
-                    </div>
-
-                    <h5 class="mb-3">搜尋</h5>
-                    <div class="mb-3">
-                        <label for="findPoint" class="form-label">名稱、負責人或住址</label>
-                        <input type="text" id="findPoint" name="findPoint" class="form-control" placeholder="輸入幼兒園名稱、負責人或地址">
-                    </div>
-                    <div class="mb-3">
-                        <label for="findPunish" class="form-label">搜尋裁罰記錄</label>
-                        <input type="text" id="findPunish" name="findPunish" class="form-control" placeholder="輸入裁罰內容">
-                    </div>
-                </div>
-            </div>
-            <div class="sidebar-pane" id="fb">
-                <div class="fb-page" data-href="https://www.facebook.com/k.olc.tw/" data-tabs="timeline"
-                    data-width="380" data-height="800" data-small-header="false" data-adapt-container-width="true" data-hide-cover="false"
-                    data-show-facepile="true">
-                    <blockquote cite="https://www.facebook.com/k.olc.tw/" class="fb-xfbml-parse-ignore"><a
-                            href="https://www.facebook.com/k.olc.tw/">江明宗</a></blockquote>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <div id="map" class="sidebar-map"></div>
+    <div id="map"></div>
+    
+    <!-- Filter button -->
+    <button class="filter-button" onclick="openFilterPopup()">
+        <i class="fa fa-filter"></i> 篩選
+    </button>
     
     <!-- Map Legend -->
     <div class="map-legend" id="mapLegend">
@@ -371,6 +525,60 @@
     <div style="position: fixed; bottom: 0px; left: 0px;">
         <a href="https://facebook.com/k.olc.tw/" target="_blank" class="btn btn-lg alert-primary">北中西區台南市議員參選人江明宗 製作</a>
     </div>
+    
+    <!-- Popup overlay -->
+    <div id="popupOverlay" class="popup-overlay">
+        <div class="popup-content">
+            <div class="popup-header">
+                <h2 id="popupTitle" class="popup-title"></h2>
+                <button class="popup-close" onclick="closePopup()">&times;</button>
+            </div>
+            <div class="popup-body">
+                <div id="popupInfo"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Filter popup -->
+    <div id="filterPopup" class="filter-popup">
+        <div class="filter-content">
+            <div class="filter-header">
+                <h2 class="filter-title">篩選與搜尋</h2>
+                <button class="filter-close" onclick="closeFilterPopup()">&times;</button>
+            </div>
+            <div class="filter-body">
+                <div class="filter-section">
+                    <button class="geolocation-btn" id="btn-geolocation">
+                        <i class="fa fa-location-arrow"></i> 回到目前位置
+                    </button>
+                </div>
+                
+                <div class="filter-section">
+                    <h5>過濾資料</h5>
+                    <label for="city">縣市</label>
+                    <select id="city" class="form-select"></select>
+                    
+                    <label for="town">鄉鎮市區</label>
+                    <select id="town" class="form-select"></select>
+                    
+                    <label for="monthlyFeeRange">每月收費上限</label>
+                    <div class="fee-range-container">
+                        <input type="range" id="monthlyFeeRange" min="0" max="20000" step="100" value="20000">
+                        <span id="monthlyFeeValue" class="fee-value">20000</span>
+                    </div>
+                </div>
+                
+                <div class="filter-section">
+                    <h5>搜尋</h5>
+                    <label for="findPoint">名稱、負責人或住址</label>
+                    <input type="text" id="findPoint" name="findPoint" placeholder="輸入幼兒園名稱、負責人或地址">
+                    
+                    <label for="findPunish">搜尋裁罰記錄</label>
+                    <input type="text" id="findPunish" name="findPunish" placeholder="輸入裁罰內容">
+                </div>
+            </div>
+        </div>
+    </div>
     <script src="js/jquery.min.js" type="text/javascript"></script>
     <script src="//cdnjs.cloudflare.com/ajax/libs/jqueryui/1.12.1/jquery-ui.min.js" type="text/javascript"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"
@@ -378,7 +586,6 @@
         crossorigin="anonymous"></script>
     <script src="js/routie.min.js" type="text/javascript"></script>
     <script src="js/ol.js" type="text/javascript"></script>
-    <script src="js/ol5-sidebar.min.js" type="text/javascript"></script>
     <script src="js/main.js" type="text/javascript"></script>
 </body>
 

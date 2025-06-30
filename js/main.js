@@ -1,4 +1,3 @@
-var sidebar = new ol.control.Sidebar({ element: 'sidebar', position: 'right' });
 var jsonFiles, filesLength, fileKey = 0;
 
 var projection = ol.proj.get('EPSG:3857');
@@ -14,7 +13,7 @@ for (var z = 0; z < 20; ++z) {
 
 var cityList = {};
 var filterCity = '', filterTown = '';
-var maxMonthlyFee = 20000; // New variable to store the maximum monthly fee
+var maxMonthlyFee = 20000;
 
 var punishmentData = {};
 var punishmentTerms = [];
@@ -37,11 +36,11 @@ function pointStyleFunction(f) {
   // Enhanced styling based on state
   if (isSelected) {
     stroke = new ol.style.Stroke({
-      color: '#ff6b35',
-      width: 4
+      color: '#007bff',
+      width: 6
     });
-    radius = 16;
-    shadowColor = 'rgba(255, 107, 53, 0.3)';
+    radius = 20;
+    shadowColor = 'rgba(0, 123, 255, 0.5)';
   } else {
     stroke = new ol.style.Stroke({
       color: hasPenalty ? '#e74c3c' : '#ffffff',
@@ -76,6 +75,26 @@ function pointStyleFunction(f) {
   }
 
   // Create main marker style with shadow effect
+  let styles = [];
+  
+  // Add pulsing effect for selected marker
+  if (isSelected) {
+    let pulseStyle = new ol.style.Style({
+      image: new ol.style.Circle({
+        radius: radius + 8,
+        fill: new ol.style.Fill({
+          color: 'rgba(0, 123, 255, 0.2)'
+        }),
+        stroke: new ol.style.Stroke({
+          color: 'rgba(0, 123, 255, 0.4)',
+          width: 2
+        })
+      }),
+      zIndex: 998
+    });
+    styles.push(pulseStyle);
+  }
+  
   let pointStyle = new ol.style.Style({
     image: new ol.style.Circle({
       radius: radius,
@@ -84,9 +103,9 @@ function pointStyleFunction(f) {
       }),
       stroke: stroke
     }),
-    // Add shadow using a larger circle behind
     zIndex: isSelected ? 1000 : 100
   });
+  styles.push(pointStyle);
 
   // Add inner dot for better definition
   let innerDotStyle = new ol.style.Style({
@@ -98,6 +117,7 @@ function pointStyleFunction(f) {
     }),
     zIndex: isSelected ? 1001 : 101
   });
+  styles.push(innerDotStyle);
 
   // Enhanced text styling that appears at zoom 13+
   if (map.getView().getZoom() >= 13) {
@@ -142,10 +162,8 @@ function pointStyleFunction(f) {
   }
 
   // Return array of styles for layered effect
-  return [pointStyle, innerDotStyle];
+  return styles;
 }
-var sidebarTitle = document.getElementById('sidebarTitle');
-var content = document.getElementById('infoBox');
 
 var appView = new ol.View({
   center: ol.proj.fromLonLat([120.221507, 23.000694]),
@@ -158,6 +176,7 @@ var vectorSource = new ol.source.Vector({
   })
 });
 
+// Filter controls functionality
 $('select#city').change(function () {
   filterCity = $(this).val();
   var townOptions = '<option value="">--</option>';
@@ -170,6 +189,7 @@ $('select#city').change(function () {
   filterTown = '';
   vectorSource.refresh();
 });
+
 $('select#town').change(function () {
   filterTown = $(this).val();
   vectorSource.refresh();
@@ -180,6 +200,18 @@ $('#monthlyFeeRange').on('input', function() {
   maxMonthlyFee = parseInt($(this).val()) || 0;
   $('#monthlyFeeValue').text(maxMonthlyFee);
   vectorSource.refresh();
+});
+
+// Geolocation functionality
+$('#btn-geolocation').click(function () {
+  var coordinates = geolocation.getPosition();
+  if (coordinates) {
+    appView.setCenter(coordinates);
+    closeFilterPopup();
+  } else {
+    alert('目前使用的設備無法提供地理資訊');
+  }
+  return false;
 });
 
 var vectorPoints = new ol.layer.Vector({
@@ -211,18 +243,35 @@ var map = new ol.Map({
   view: appView
 });
 
-map.addControl(sidebar);
 var pointClicked = false;
+var isHashUpdate = false; // Flag to prevent double execution
+
 map.on('singleclick', function (evt) {
-  content.innerHTML = '';
   pointClicked = false;
   map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
     if (false === pointClicked) {
+      // Reset previous feature styling
+      if (currentFeature && currentFeature !== feature) {
+        currentFeature.setStyle(null); // Reset to default style
+        vectorSource.refresh(); // Force refresh to apply default styling
+      }
+      
+      // Set new current feature and update its styling
+      currentFeature = feature;
+      feature.setStyle(pointStyleFunction(feature));
+      
       var p = feature.getProperties();
+      
+      // Show popup at click position first
+      showPopup(p, evt.pixel);
+      
+      // Update URL hash (this will trigger showPoint but we'll prevent duplicate popup)
       var targetHash = '#' + p.id;
       if (window.location.hash !== targetHash) {
+        isHashUpdate = true;
         window.location.hash = targetHash;
       }
+      
       pointClicked = true;
     }
   });
@@ -273,14 +322,246 @@ new ol.layer.Vector({
   })
 });
 
-$('#btn-geolocation').click(function () {
-  var coordinates = geolocation.getPosition();
-  if (coordinates) {
-    appView.setCenter(coordinates);
-  } else {
-    alert('目前使用的設備無法提供地理資訊');
+// Popup functionality
+function showPopup(p, clickPixel) {
+  console.log('showPopup called with:', p.title, 'clickPixel:', clickPixel);
+  var popupTitle = document.getElementById('popupTitle');
+  var popupInfo = document.getElementById('popupInfo');
+  var popupOverlay = document.getElementById('popupOverlay');
+  var popupContent = popupOverlay.querySelector('.popup-content');
+  
+  console.log('Popup elements found:', {
+    popupTitle: !!popupTitle,
+    popupInfo: !!popupInfo, 
+    popupOverlay: !!popupOverlay,
+    popupContent: !!popupContent
+  });
+  
+  popupTitle.innerHTML = p.title;
+  
+  var message = '<table class="table table-sm">';
+  message += '<tbody>';
+  
+  // Basic Information
+  if (p.owner) {
+    message += '<tr><th scope="row" style="width: 120px;">負責人</th><td>' + p.owner + '</td></tr>';
   }
-  return false;
+  message += '<tr><th scope="row">電話</th><td>' + (p.tel || '未提供') + '</td></tr>';
+  message += '<tr><th scope="row">住址</th><td>' + p.city + p.town + p.address + '</td></tr>';
+  message += '<tr><td colspan="2"><button class="detail-button" onclick="window.open(\'https://preschools.olc.tw/preschools/view/' + p.id + '\', \'_blank\')">詳細資訊</button></td></tr>';
+  
+  // Type and Classification
+  if (p.type === '私立' && p.pre_public !== '無') {
+    message += '<tr><th scope="row">類型</th><td>' + p.type + ' (準公共化)</td></tr>';
+  } else {
+    message += '<tr><th scope="row">類型</th><td>' + p.type + '</td></tr>';
+  }
+  
+  if (p.pre_public && p.pre_public !== '無') {
+    message += '<tr><th scope="row">準公共化</th><td>' + p.pre_public + '</td></tr>';
+  }
+  
+  // Capacity and Size Information
+  if (p.count_approved) {
+    message += '<tr><th scope="row">核定人數</th><td>' + p.count_approved + ' 人</td></tr>';
+  }
+  
+  if (p.size) {
+    message += '<tr><th scope="row">全園總面積</th><td>' + p.size + ' 平方公尺</td></tr>';
+  }
+  if (p.size_in) {
+    message += '<tr><th scope="row">室內總面積</th><td>' + p.size_in + ' 平方公尺</td></tr>';
+  }
+  if (p.size_out) {
+    message += '<tr><th scope="row">室外活動空間</th><td>' + p.size_out + ' 平方公尺</td></tr>';
+  }
+  if (p.floor) {
+    message += '<tr><th scope="row">使用樓層</th><td>' + p.floor + '</td></tr>';
+  }
+  
+  // Registration Information
+  if (p.reg_date) {
+    message += '<tr><th scope="row">核准設立日期</th><td>' + p.reg_date + '</td></tr>';
+  }
+  if (p.reg_no) {
+    message += '<tr><th scope="row">設立許可證號</th><td>' + p.reg_no + '</td></tr>';
+  }
+  if (p.reg_docno) {
+    message += '<tr><th scope="row">設立許可文號</th><td>' + p.reg_docno + '</td></tr>';
+  }
+  
+  // Fees and Services
+  message += '<tr><th scope="row">每月收費</th><td><strong>$' + p.monthly + '</strong></td></tr>';
+  
+  if (p.is_free5 && p.is_free5 !== '無') {
+    message += '<tr><th scope="row">五歲免費</th><td>' + p.is_free5 + '</td></tr>';
+  }
+  
+  if (p.is_after && p.is_after !== '無') {
+    message += '<tr><th scope="row">國小課後照顧</th><td>' + p.is_after + '</td></tr>';
+  }
+  
+  if (p.shuttle && p.shuttle !== '無') {
+    message += '<tr><th scope="row">幼童專用車</th><td>' + p.shuttle + '</td></tr>';
+  }
+  
+  // Website
+  if (p.url && p.url !== '') {
+    message += '<tr><th scope="row">網址</th><td><a href="' + p.url + '" target="_blank" class="text-decoration-none">' + p.url + '</a></td></tr>';
+  }
+  
+  // Status Information
+  if (p.is_active !== undefined) {
+    var statusText = p.is_active ? '營業中' : '已停業';
+    var statusClass = p.is_active ? 'text-success' : 'text-danger';
+    message += '<tr><th scope="row">營業狀態</th><td><span class="' + statusClass + '">' + statusText + '</span></td></tr>';
+  }
+  
+  // Penalty Records
+  if (p.penalty) {
+    var penaltyClass = p.penalty === '有' ? 'text-warning' : 'text-success';
+    message += '<tr><th scope="row">裁罰記錄</th><td><span class="' + penaltyClass + '">' + p.penalty + '</span></td></tr>';
+  }
+  
+  message += '</tbody></table>';
+  
+  popupInfo.innerHTML = message;
+  
+  // Position the popup
+  console.log('Positioning popup, clickPixel provided:', !!clickPixel);
+  if (clickPixel) {
+    var mapElement = document.getElementById('map');
+    var mapRect = mapElement.getBoundingClientRect();
+    
+    var markerX = clickPixel[0] + mapRect.left;
+    var markerY = clickPixel[1] + mapRect.top;
+    
+    var viewportWidth = window.innerWidth;
+    var viewportHeight = window.innerHeight;
+    var popupWidth = 350; // max-width from CSS
+    var popupHeight = 400; // max-height from CSS
+    
+    var x, y;
+    var isOnLeft = false;
+    
+    // Standard side positioning
+    x = markerX + 30; // 30px offset to the right of marker
+    y = markerY - 20;  // 20px offset above marker
+    
+    // Adjust if popup would go off right edge
+    if (x + popupWidth > viewportWidth) {
+      x = markerX - popupWidth - 30; // Place to the left instead
+      isOnLeft = true;
+      popupContent.classList.add('arrow-right');
+      popupContent.classList.remove('arrow-left');
+    } else {
+      popupContent.classList.add('arrow-left');
+      popupContent.classList.remove('arrow-right');
+    }
+    
+    // Adjust if popup would go off bottom edge
+    if (y + popupHeight > viewportHeight) {
+      y = viewportHeight - popupHeight - 20;
+    }
+    
+    // Adjust if popup would go off top edge
+    if (y < 20) {
+      y = 20;
+    }
+    
+    popupContent.style.left = x + 'px';
+    popupContent.style.top = y + 'px';
+    
+    // Create connector line
+    var connector = document.getElementById('popupConnector');
+    if (!connector) {
+      connector = document.createElement('div');
+      connector.id = 'popupConnector';
+      connector.className = 'popup-connector';
+      popupOverlay.appendChild(connector);
+    }
+    
+    // Calculate line position and rotation
+    var popupCenterX = x + (isOnLeft ? popupWidth : 0);
+    var popupCenterY = y + 40; // Connect to upper part of popup
+    
+    var deltaX = markerX - popupCenterX;
+    var deltaY = markerY - popupCenterY;
+    var distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+    var angle = Math.atan2(deltaY, deltaX) * 180 / Math.PI;
+    
+    connector.style.left = Math.min(markerX, popupCenterX) + 'px';
+    connector.style.top = Math.min(markerY, popupCenterY) + 'px';
+    connector.style.width = distance + 'px';
+    connector.style.height = '3px';
+    connector.style.transformOrigin = '0 50%';
+    connector.style.transform = 'rotate(' + angle + 'deg)';
+    connector.style.display = 'block';
+  }
+  
+  console.log('Setting popupOverlay display to block');
+  console.log('Final popup position:', popupContent.style.left, popupContent.style.top);
+  console.log('Popup overlay display style:', popupOverlay.style.display);
+  popupOverlay.style.display = 'block';
+  
+  // Check if popup is actually visible after setting display
+  setTimeout(function() {
+    var computedStyle = window.getComputedStyle(popupOverlay);
+    console.log('Popup overlay computed display:', computedStyle.display);
+    console.log('Popup overlay computed visibility:', computedStyle.visibility);
+    console.log('Popup overlay computed z-index:', computedStyle.zIndex);
+  }, 100);
+}
+
+function closePopup() {
+  var popupOverlay = document.getElementById('popupOverlay');
+  var connector = document.getElementById('popupConnector');
+  
+  popupOverlay.style.display = 'none';
+  
+  if (connector) {
+    connector.style.display = 'none';
+  }
+  
+  // Reset current feature styling
+  if (currentFeature) {
+    currentFeature.setStyle(null); // Reset to default style
+    vectorSource.refresh(); // Force refresh to apply default styling
+    currentFeature = false;
+  }
+}
+
+// Close popup when clicking overlay background
+document.getElementById('popupOverlay').addEventListener('click', function(e) {
+  console.log('Popup overlay clicked, target:', e.target, 'this:', this);
+  console.log('Target class:', e.target.className);
+  console.log('Closest popup-content:', e.target.closest('.popup-content'));
+  
+  // Close if clicking on the overlay itself or any area outside the popup content
+  if (e.target === this || !e.target.closest('.popup-content')) {
+    console.log('Closing popup due to overlay click');
+    closePopup();
+  } else {
+    console.log('Not closing popup - click was inside content');
+  }
+});
+
+// Filter popup functionality
+function openFilterPopup() {
+  var filterPopup = document.getElementById('filterPopup');
+  filterPopup.style.display = 'flex';
+}
+
+function closeFilterPopup() {
+  var filterPopup = document.getElementById('filterPopup');
+  filterPopup.style.display = 'none';
+}
+
+// Close filter popup when clicking overlay background
+document.getElementById('filterPopup').addEventListener('click', function(e) {
+  if (e.target === this) {
+    closeFilterPopup();
+  }
 });
 
 function showPos(lng, lat) {
@@ -294,170 +575,64 @@ var slipYears = ['113'];
 var slipKeys = ['學費', '雜費', '材料費', '活動費', '午餐費', '點心費', '全學期總收費', '交通費', '課後延托費', '家長會費'];
 
 function showPoint(pointId) {
+  console.log('showPoint called with ID:', pointId);
   firstPosDone = true;
-  $('#findPoint').val('');
   var features = vectorPoints.getSource().getFeatures();
+  console.log('Total features found:', features.length);
   var pointFound = false;
   for (k in features) {
     var p = features[k].getProperties();
     if (p.id === pointId) {
+      console.log('Found matching feature:', p.title, 'with ID:', p.id);
       pointFound = true;
-      currentFeature = features[k];
-      features[k].setStyle(pointStyleFunction(features[k]));
-      if (false !== previousFeature) {
-        previousFeature.setStyle(pointStyleFunction(previousFeature));
+      
+      // If this is called from a hash update due to direct click, don't show popup again
+      if (isHashUpdate) {
+        console.log('Skipping due to isHashUpdate flag');
+        isHashUpdate = false;
+        document.title = p.title + ' - 台灣幼兒園地圖';
+        return;
       }
-      previousFeature = currentFeature;
-      appView.setCenter(features[k].getGeometry().getCoordinates());
+      
+      console.log('Setting map center and zoom...');
+      var targetFeature = features[k]; // Capture the feature reference
+      var targetCoords = targetFeature.getGeometry().getCoordinates();
+      
+      appView.setCenter(targetCoords);
       appView.setZoom(15);
-      var lonLat = ol.proj.toLonLat(p.geometry.getCoordinates());
-      var message = '<table class="table table-dark">';
-      message += '<tbody>';
-      message += '<tr><th scope="row" style="width: 100px;">名稱</th><td>' + p.title + '</td></tr>';
-      if (p.owner) {
-        message += '<tr><th scope="row">負責人</th><td><a href="https://preschools.olc.tw/owners/' + p.owner + '">' + p.owner + '</a></td></tr>';
-      }
-      message += '<tr><th scope="row">電話</th><td>' + p.tel + '</td></tr>';
-      message += '<tr><th scope="row">住址</th><td>' + p.city + p.town + p.address + '</td></tr>';
-      if (p.city === '新竹縣' && p.town === '竹北市') {
-        message += '<tr><td colspan="2"><a href="https://www.facebook.com/zhubeibetter" target="_blank"><img src="img/zhubeibetter.jpg" alt="竹北幼兒園" style="max-width: 100%; height: auto;"></a></td></tr>';
-      }
-      if (p.type === '私立' && p.pre_public !== '無') {
-        message += '<tr><th scope="row">類型</th><td>' + p.type + '(準公共化)</td></tr>';
-      } else {
-        message += '<tr><th scope="row">類型</th><td>' + p.type + '</td></tr>';
-      }
-      message += '<tr><th scope="row">核定人數</th><td>' + p.count_approved + '</td></tr>';
-      if (p.size) {
-        message += '<tr><th scope="row">全園總面積</th><td>' + p.size + '</td></tr>';
-        message += '<tr><th scope="row">室內總面積</th><td>' + p.size_in + '</td></tr>';
-        message += '<tr><th scope="row">室外活動空間總面積</th><td>' + p.size_out + '</td></tr>';
-        message += '<tr><th scope="row">使用樓層</th><td>' + p.floor + '</td></tr>';
-        message += '<tr><th scope="row">幼童專用車</th><td>' + p.shuttle + '</td></tr>';
-        message += '<tr><th scope="row">核准設立日期</th><td>' + p.reg_date + '</td></tr>';
-        message += '<tr><th scope="row">設立許可證號</th><td>' + p.reg_no + '</td></tr>';
-        message += '<tr><th scope="row">設立許可文號</th><td>' + p.reg_docno + '</td></tr>';
-      }
-      message += '<tr><th scope="row">五歲免費</th><td>' + p.is_free5 + '</td></tr>';
-      message += '<tr><th scope="row">準公共化</th><td>' + p.pre_public + '</td></tr>';
-      if (p.url !== '') {
-        message += '<tr><th scope="row">網址</th><td><a href="' + p.url + '" target="_blank">' + p.url + '</a></td></tr>';
-      }
-      message += '<tr><th scope="row">兼辦國小課後照顧</th><td>' + p.is_after + '</td></tr>';
-      message += '<tr><th scope="row">裁罰記錄</th><td>' + p.penalty + '</td></tr>';
-      message += '<tr><td colspan="2">';
-      message += '<hr /><div class="btn-group-vertical" role="group" style="width: 100%;">';
-      message += '<a href="https://www.google.com/maps/dir/?api=1&destination=' + lonLat[1] + ',' + lonLat[0] + '&travelmode=driving" target="_blank" class="btn btn-info btn-lg btn-block">Google 導航</a>';
-      message += '<a href="https://wego.here.com/directions/drive/mylocation/' + lonLat[1] + ',' + lonLat[0] + '" target="_blank" class="btn btn-info btn-lg btn-block">Here WeGo 導航</a>';
-      message += '<a href="https://bing.com/maps/default.aspx?rtp=~pos.' + lonLat[1] + '_' + lonLat[0] + '" target="_blank" class="btn btn-info btn-lg btn-block">Bing 導航</a>';
-      message += '</div></td></tr>';
-      message += '</tbody></table>';
-      sidebarTitle.innerHTML = p.title;
-      content.innerHTML = message;
-
-      $('#punishmentBox').html('');
-      $('#punishmentItem').hide();
-      $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/data/punish/' + p.city + '/' + p.title + '.json', {}, function (r) {
-        var message = '';
-        for (let line of r) {
-          message += '<table class="table table-dark"><tbody>';
-          message += '<tr><td>' + line[0] + '</td></tr>';
-          message += '<tr><td>' + line[1] + '</td></tr>';
-          message += '<tr><td>' + line[2] + '</td></tr>';
-          message += '<tr><td>' + line[3] + '</td></tr>';
-          message += '<tr><td>' + line[4] + '</td></tr>';
-          message += '<tr><td>' + line[5] + '</td></tr>';
-          message += '<tr><td id="' + line[1] + '"></td></tr>';
-          message += '</tbody></table>';
+      
+      // Wait for map to settle, then simulate a click at the marker's center
+      setTimeout(function() {
+        console.log('Timeout triggered, calculating pixel coordinates...');
+        var pixel = map.getPixelFromCoordinate(targetCoords);
+        console.log('Pixel coordinates:', pixel);
+        
+        // Instead of trying to find the feature at pixel coordinates,
+        // let's directly trigger the popup since we already have the feature
+        console.log('Directly showing popup for target feature...');
+        
+        // Reset previous feature styling
+        if (currentFeature && currentFeature !== targetFeature) {
+          currentFeature.setStyle(null);
+          vectorSource.refresh();
         }
-        $('#punishmentBox').html(message);
-        $('#punishmentItem').show();
-      });
-      setTimeout((p) => {
-        $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/data/punish_note/' + p.city + '/' + p.title + '.json', {}, function (r) {
-          for (let line of r) {
-            $('#' + line[0]).html('備註：' + line[1]);
-          }
-        });
-      }, 300, p);
-
-      $('#vehicleBox').html('');
-      $('#vehicleItem').hide();
-      if (vehicles[p.id]) {
-        var vMessage = '';
-        for (let line of vehicles[p.id]) {
-          vMessage += '<table class="table table-dark"><tbody>';
-          vMessage += '<tr><th>車牌</th><td>' + line.plate_no + '</td></tr>';
-          vMessage += '<tr><th>出廠年月</th><td>' + line.on_production_date + '</td></tr>';
-          vMessage += '<tr><th>下次定檢日期</th><td>' + line.next_exam_dt + '</td></tr>';
-          vMessage += '<tr><th>備註</th><td>' + line.txn_name + '</td></tr>';
-          vMessage += '</tbody></table>';
-        }
-        $('#vehicleBox').html(vMessage);
-        $('#vehicleItem').show();
-      }
-
-      for (let slipYear of slipYears) {
-        $('#slipBox' + slipYear).html('');
-        $('#accordion' + slipYear).hide();
-        $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/data/slip' + slipYear + '/' + p.city + '/' + p.title + '.json', {}, function (r) {
-          var message = '<table class="table table-dark">';
-          message += '<tbody>';
-
-          for (y in r.slip) {
-            for (p in r.slip[y]) {
-              message += '<tr><td colspan="2">';
-              message += y + '歲 - ' + p + ' / ' + r.slip[y][p].months + '個月';
-              message += '</td></tr>';
-              let blockToShow = false;
-              for (let slipKey of slipKeys) {
-                if (r.slip[y][p].class['全日班'][slipKey] && r.slip[y][p].class['全日班'][slipKey]['單價'] != '') {
-                  blockToShow = true;
-                }
-              }
-              if (blockToShow) {
-                message += '<tr><td colspan="2" style="text-align:right;">全日班</td></tr>';
-                message += '<tr><td colspan="2" class="table-responsive"><table class="table-dark" style="width:100%;">'
-                message += '<tr><th>項目</th><th>收費期間</th><th>單價</th><th>小計</th></tr>';
-                for (let slipKey of slipKeys) {
-                  if (r.slip[y][p].class['全日班'][slipKey]) {
-                    message += '<tr><td>' + slipKey + '</td><td>' + r.slip[y][p].class['全日班'][slipKey]['收費期間'] + '</td><td>' + r.slip[y][p].class['全日班'][slipKey]['單價'] + '</td><td>' + r.slip[y][p].class['全日班'][slipKey]['小計'] + '</td></tr>';
-                  }
-                }
-                message += '</table></td></tr>';
-              }
-              blockToShow = false;
-              for (let slipKey of slipKeys) {
-                if (r.slip[y][p].class['半日班'][slipKey] && r.slip[y][p].class['半日班'][slipKey]['單價'] != '') {
-                  blockToShow = true;
-                }
-              }
-              if (blockToShow) {
-                message += '<tr><td colspan="2" style="text-align:right;">半日班</td></tr>';
-                message += '<tr><td colspan="2" class="table-responsive"><table class="table-dark" style="width:100%;">'
-                message += '<tr><th>項目</th><th>收費期間</th><th>單價</th><th>小計</th></tr>';
-                for (let slipKey of slipKeys) {
-                  if (r.slip[y][p].class['半日班'][slipKey]) {
-                    message += '<tr><td>' + slipKey + '</td><td>' + r.slip[y][p].class['半日班'][slipKey]['收費期間'] + '</td><td>' + r.slip[y][p].class['半日班'][slipKey]['單價'] + '</td><td>' + r.slip[y][p].class['半日班'][slipKey]['小計'] + '</td></tr>';
-                  }
-                }
-                message += '</table></td></tr>';
-              }
-            }
-          }
-          message += '</tbody></table>';
-          $('#slipBox' + slipYear).html(message);
-          $('#accordion' + slipYear).show();
-        });
-      }
-      $('#linkPreschool').attr('href', 'https://preschools.olc.tw/preschools/view/' + pointId).html('詳細資訊');
-
-      sidebarTitle.innerHTML = p.title;
+        
+        // Set new current feature and update its styling
+        currentFeature = targetFeature;
+        targetFeature.setStyle(pointStyleFunction(targetFeature));
+        
+        var p = targetFeature.getProperties();
+        console.log('About to call showPopup with:', p.title, 'ID:', p.id);
+        showPopup(p, pixel);
+        console.log('Popup should now be visible');
+      }, 1000); // Increased delay to 1 second
+      
       document.title = p.title + ' - 台灣幼兒園地圖';
-      content.innerHTML = message;
     }
   }
-  sidebar.open('home');
+  if (!pointFound) {
+    console.log('No feature found with ID:', pointId);
+  }
 }
 
 var pointsFc;
@@ -487,6 +662,7 @@ $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/preschools.json', {}, funct
       ++cityList[p.city][p.town];
     }
   }
+  // Populate city dropdown
   var cityOptions = '<option value="">--</option>';
   for (city in cityList) {
     cityOptions += '<option>' + city + '</option>';
@@ -501,7 +677,19 @@ $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/preschools.json', {}, funct
 
   routie(':pointId', showPoint);
   routie('pos/:lng/:lat', showPos);
+  
+  // Check if there's a hash in the URL on initial load
+  if (window.location.hash) {
+    var pointId = window.location.hash.substring(1); // Remove the # symbol
+    if (pointId) {
+      // Small delay to ensure everything is properly initialized
+      setTimeout(function() {
+        showPoint(pointId);
+      }, 100);
+    }
+  }
 
+  // Initialize autocomplete for preschool search
   $('#findPoint').autocomplete({
     source: findTerms,
     select: function (event, ui) {
@@ -509,6 +697,7 @@ $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/preschools.json', {}, funct
       if (window.location.hash !== targetHash) {
         window.location.hash = targetHash;
       }
+      closeFilterPopup();
     }
   });
 });
@@ -537,6 +726,7 @@ $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/punish_all.json', {}, funct
             if (window.location.hash !== targetHash) {
                 window.location.hash = targetHash;
             }
+            closeFilterPopup();
         }
     });
 });
