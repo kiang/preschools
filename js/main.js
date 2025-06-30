@@ -414,7 +414,7 @@ function showPopup(p, clickPixel) {
   
   // Website
   if (p.url && p.url !== '') {
-    message += '<tr><th scope="row">網址</th><td><a href="' + p.url + '" target="_blank" class="text-decoration-none">' + p.url + '</a></td></tr>';
+    message += '<tr><th scope="row">網址</th><td><a href="' + p.url + '" target="_blank" class="btn btn-sm btn-outline-primary">點我前往</a></td></tr>';
   }
   
   // Status Information
