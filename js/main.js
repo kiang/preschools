@@ -344,7 +344,7 @@ function showPopup(p, clickPixel) {
   
   // Basic Information
   if (p.owner) {
-    message += '<tr><th scope="row" style="width: 120px;">負責人</th><td>' + p.owner + '</td></tr>';
+    message += '<tr><th scope="row" style="width: 120px;">負責人</th><td><a href="https://preschools.olc.tw/owners/' + p.owner + '" target="_blank" class="text-decoration-none">' + p.owner + '</a></td></tr>';
   }
   message += '<tr><th scope="row">電話</th><td>' + (p.tel || '未提供') + '</td></tr>';
   message += '<tr><th scope="row">住址</th><td>' + p.city + p.town + p.address + '</td></tr>';
@@ -367,13 +367,13 @@ function showPopup(p, clickPixel) {
   }
   
   if (p.size) {
-    message += '<tr><th scope="row">全園總面積</th><td>' + p.size + ' 平方公尺</td></tr>';
+    message += '<tr><th scope="row">全園總面積</th><td>' + p.size + '</td></tr>';
   }
   if (p.size_in) {
-    message += '<tr><th scope="row">室內總面積</th><td>' + p.size_in + ' 平方公尺</td></tr>';
+    message += '<tr><th scope="row">室內總面積</th><td>' + p.size_in + '</td></tr>';
   }
   if (p.size_out) {
-    message += '<tr><th scope="row">室外活動空間</th><td>' + p.size_out + ' 平方公尺</td></tr>';
+    message += '<tr><th scope="row">室外活動空間</th><td>' + p.size_out + '</td></tr>';
   }
   if (p.floor) {
     message += '<tr><th scope="row">使用樓層</th><td>' + p.floor + '</td></tr>';
