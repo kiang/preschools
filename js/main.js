@@ -202,11 +202,33 @@ $('#monthlyFeeRange').on('input', function() {
   vectorSource.refresh();
 });
 
+// Function to check if coordinates are within Taiwan's main islands
+function isWithinTaiwan(lon, lat) {
+  // Taiwan's approximate boundaries (in WGS84 coordinates)
+  var taiwanBounds = {
+    north: 26.4,   // North tip
+    south: 21.9,   // South tip  
+    east: 122.0,   // East coast
+    west: 119.3    // West coast
+  };
+  
+  return lat >= taiwanBounds.south && lat <= taiwanBounds.north && 
+         lon >= taiwanBounds.west && lon <= taiwanBounds.east;
+}
+
 // Geolocation functionality
 $('#btn-geolocation').click(function () {
   var coordinates = geolocation.getPosition();
   if (coordinates) {
-    appView.setCenter(coordinates);
+    // Convert coordinates back to WGS84 for boundary check
+    var lonLat = ol.proj.toLonLat(coordinates);
+    
+    if (isWithinTaiwan(lonLat[0], lonLat[1])) {
+      appView.setCenter(coordinates);
+    } else {
+      // If outside Taiwan, center on Taiwan
+      appView.setCenter(ol.proj.fromLonLat([120.221507, 23.000694]));
+    }
     closeFilterPopup();
   } else {
     alert('目前使用的設備無法提供地理資訊');
@@ -317,7 +339,17 @@ geolocation.on('change:position', function () {
   var coordinates = geolocation.getPosition();
   positionFeature.setGeometry(coordinates ? new ol.geom.Point(coordinates) : null);
   if (false === firstPosDone) {
-    appView.setCenter(coordinates);
+    if (coordinates) {
+      // Convert coordinates back to WGS84 for boundary check
+      var lonLat = ol.proj.toLonLat(coordinates);
+      
+      if (isWithinTaiwan(lonLat[0], lonLat[1])) {
+        appView.setCenter(coordinates);
+      } else {
+        // If outside Taiwan, center on Taiwan
+        appView.setCenter(ol.proj.fromLonLat([120.221507, 23.000694]));
+      }
+    }
     firstPosDone = true;
   }
 });
