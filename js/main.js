@@ -1,748 +1,573 @@
-var jsonFiles, filesLength, fileKey = 0;
-
-var projection = ol.proj.get('EPSG:3857');
-var projectionExtent = projection.getExtent();
-var size = ol.extent.getWidth(projectionExtent) / 256;
-var resolutions = new Array(20);
-var matrixIds = new Array(20);
-for (var z = 0; z < 20; ++z) {
-  // generate resolutions and matrixIds arrays for this WMTS
-  resolutions[z] = size / Math.pow(2, z);
-  matrixIds[z] = z;
-}
+// Global variables
+var map;
+var markers = L.markerClusterGroup({
+    chunkedLoading: true,
+    spiderfyOnMaxZoom: true,
+    showCoverageOnHover: false,
+    zoomToBoundsOnClick: true,
+    maxClusterRadius: 50,
+    iconCreateFunction: function(cluster) {
+        var childCount = cluster.getChildCount();
+        var c = ' marker-cluster-';
+        if (childCount < 10) {
+            c += 'small';
+        } else if (childCount < 100) {
+            c += 'medium';
+        } else {
+            c += 'large';
+        }
+        return new L.DivIcon({
+            html: '<div><span>' + childCount + '</span></div>',
+            className: 'marker-cluster' + c,
+            iconSize: new L.Point(40, 40)
+        });
+    }
+});
 
 var cityList = {};
 var filterCity = '', filterTown = '';
 var maxMonthlyFee = 20000;
-
 var punishmentData = {};
 var punishmentTerms = [];
-
-function pointStyleFunction(f) {
-  var p = f.getProperties(), color, stroke, radius, shadowColor;
-  if (filterCity !== '' && p.city !== filterCity) {
-    return null;
-  }
-  if (filterTown !== '' && p.town !== filterTown) {
-    return null;
-  }
-  if (parseInt(p.monthly) > maxMonthlyFee) {
-    return null;
-  }
-  
-  var isSelected = f === currentFeature;
-  var hasPenalty = p.penalty === '有';
-  
-  // Enhanced styling based on state
-  if (isSelected) {
-    stroke = new ol.style.Stroke({
-      color: '#007bff',
-      width: 6
-    });
-    radius = 20;
-    shadowColor = 'rgba(0, 123, 255, 0.5)';
-  } else {
-    stroke = new ol.style.Stroke({
-      color: hasPenalty ? '#e74c3c' : '#ffffff',
-      width: hasPenalty ? 3 : 2
-    });
-    radius = 12;
-    shadowColor = hasPenalty ? 'rgba(231, 76, 60, 0.3)' : 'rgba(0, 0, 0, 0.2)';
-  }
-
-  // Improved color scheme with better contrast
-  if (!p.is_active) {
-    color = '#95a5a6';
-    shadowColor = 'rgba(149, 165, 166, 0.3)';
-  } else {
-    switch (p.type) {
-      case '公立':
-        color = '#27ae60'; // Darker green for better visibility
-        break;
-      case '私立':
-        if (p.pre_public !== '無') {
-          color = '#1abc9c'; // Teal for semi-public
-        } else {
-          color = '#3498db'; // Blue for private
-        }
-        break;
-      case '非營利':
-        color = '#f39c12'; // Orange for non-profit
-        break;
-      default:
-        color = '#7f8c8d';
-    }
-  }
-
-  // Create main marker style with shadow effect
-  let styles = [];
-  
-  // Add pulsing effect for selected marker
-  if (isSelected) {
-    let pulseStyle = new ol.style.Style({
-      image: new ol.style.Circle({
-        radius: radius + 8,
-        fill: new ol.style.Fill({
-          color: 'rgba(0, 123, 255, 0.2)'
-        }),
-        stroke: new ol.style.Stroke({
-          color: 'rgba(0, 123, 255, 0.4)',
-          width: 2
-        })
-      }),
-      zIndex: 998
-    });
-    styles.push(pulseStyle);
-  }
-  
-  let pointStyle = new ol.style.Style({
-    image: new ol.style.Circle({
-      radius: radius,
-      fill: new ol.style.Fill({
-        color: color
-      }),
-      stroke: stroke
-    }),
-    zIndex: isSelected ? 1000 : 100
-  });
-  styles.push(pointStyle);
-
-  // Add inner dot for better definition
-  let innerDotStyle = new ol.style.Style({
-    image: new ol.style.Circle({
-      radius: radius * 0.4,
-      fill: new ol.style.Fill({
-        color: 'rgba(255, 255, 255, 0.8)'
-      })
-    }),
-    zIndex: isSelected ? 1001 : 101
-  });
-  styles.push(innerDotStyle);
-
-  // Enhanced text styling that appears at zoom 13+
-  if (map.getView().getZoom() >= 13) {
-    var textColor = '#2c3e50';
-    var backgroundColor = 'rgba(255, 255, 255, 0.9)';
-    
-    if (map.getView().getZoom() >= 15) {
-      // Show full price info at high zoom
-      pointStyle.setText(new ol.style.Text({
-        font: 'bold 12px "Arial", sans-serif',
-        fill: new ol.style.Fill({
-          color: textColor
-        }),
-        stroke: new ol.style.Stroke({
-          color: backgroundColor,
-          width: 3
-        }),
-        text: '$' + p.monthly.toString() + '/月',
-        offsetY: radius + 15,
-        textAlign: 'center',
-        backgroundFill: new ol.style.Fill({
-          color: backgroundColor
-        }),
-        padding: [2, 4, 2, 4]
-      }));
-    } else {
-      // Show simplified price at medium zoom
-      pointStyle.setText(new ol.style.Text({
-        font: 'bold 10px "Arial", sans-serif',
-        fill: new ol.style.Fill({
-          color: textColor
-        }),
-        stroke: new ol.style.Stroke({
-          color: backgroundColor,
-          width: 2
-        }),
-        text: '$' + (Math.round(p.monthly / 1000) * 1000).toString(),
-        offsetY: radius + 12,
-        textAlign: 'center'
-      }));
-    }
-  }
-
-  // Return array of styles for layered effect
-  return styles;
-}
-
-var appView = new ol.View({
-  center: ol.proj.fromLonLat([120.221507, 23.000694]),
-  zoom: 14
-});
-
-var vectorSource = new ol.source.Vector({
-  format: new ol.format.GeoJSON({
-    featureProjection: appView.getProjection()
-  })
-});
-
-// Filter controls functionality
-$('select#city').change(function () {
-  filterCity = $(this).val();
-  var townOptions = '<option value="">--</option>';
-  if (filterCity !== '') {
-    for (town in cityList[filterCity]) {
-      townOptions += '<option>' + town + '</option>';
-    }
-  }
-  $('select#town').html(townOptions);
-  filterTown = '';
-  vectorSource.refresh();
-});
-
-$('select#town').change(function () {
-  filterTown = $(this).val();
-  vectorSource.refresh();
-});
-
-// Add event listener for the monthly fee range slider
-$('#monthlyFeeRange').on('input', function() {
-  maxMonthlyFee = parseInt($(this).val()) || 0;
-  $('#monthlyFeeValue').text(maxMonthlyFee);
-  vectorSource.refresh();
-});
+var allMarkers = [];
+var currentFeature = null;
+var isHashUpdateFromClick = false;
 
 // Function to check if coordinates are within Taiwan's main islands
 function isWithinTaiwan(lon, lat) {
-  // Taiwan's approximate boundaries (in WGS84 coordinates)
-  var taiwanBounds = {
-    north: 26.4,   // North tip
-    south: 21.9,   // South tip  
-    east: 122.0,   // East coast
-    west: 119.3    // West coast
-  };
-  
-  return lat >= taiwanBounds.south && lat <= taiwanBounds.north && 
-         lon >= taiwanBounds.west && lon <= taiwanBounds.east;
-}
-
-// Geolocation functionality
-$('#btn-geolocation').click(function () {
-  var coordinates = geolocation.getPosition();
-  if (coordinates) {
-    // Convert coordinates back to WGS84 for boundary check
-    var lonLat = ol.proj.toLonLat(coordinates);
+    var taiwanBounds = {
+        north: 26.4,
+        south: 21.9,
+        east: 122.0,
+        west: 119.3
+    };
     
-    if (isWithinTaiwan(lonLat[0], lonLat[1])) {
-      appView.setCenter(coordinates);
+    return lat >= taiwanBounds.south && lat <= taiwanBounds.north && 
+           lon >= taiwanBounds.west && lon <= taiwanBounds.east;
+}
+
+// Function to get marker color based on preschool type
+function getMarkerColor(properties) {
+    if (!properties.is_active) {
+        return '#95a5a6'; // Gray for closed
+    }
+    
+    switch (properties.type) {
+        case '公立':
+            return '#27ae60'; // Green
+        case '私立':
+            if (properties.pre_public !== '無') {
+                return '#1abc9c'; // Teal for semi-public
+            } else {
+                return '#3498db'; // Blue for private
+            }
+        case '非營利':
+            return '#f39c12'; // Orange
+        default:
+            return '#7f8c8d'; // Gray default
+    }
+}
+
+// Create custom marker icon
+function createMarkerIcon(properties, isSelected) {
+    var color = getMarkerColor(properties);
+    var borderColor = properties.penalty === '有' ? '#e74c3c' : '#ffffff';
+    var borderWidth = properties.penalty === '有' ? 3 : 2;
+    var size = isSelected ? 20 : 12;
+    
+    if (isSelected) {
+        // Enhanced styling for selected marker
+        var hasPenalty = properties.penalty === '有';
+        var selectedBorderColor = hasPenalty ? '#e74c3c' : '#007bff';
+        var pulseColor = hasPenalty ? '#e74c3c' : '#007bff';
+        var glowColor = hasPenalty ? 'rgba(231, 76, 60, 0.8)' : 'rgba(0, 123, 255, 0.8)';
+        
+        var pulseRing = '<div style="position: absolute; width: ' + (size * 3) + 'px; height: ' + (size * 3) + 'px; border-radius: 50%; border: 3px solid ' + pulseColor + '; opacity: 0.5; top: 50%; left: 50%; transform: translate(-50%, -50%); animation: pulse 1.5s ease-out infinite;"></div>';
+        var glowEffect = 'box-shadow: 0 0 20px ' + glowColor + ', 0 4px 8px rgba(0,0,0,0.5);';
+        borderWidth = 4;
+        
+        return L.divIcon({
+            className: 'custom-marker selected-marker',
+            html: '<div style="position: relative; width: ' + (size * 2) + 'px; height: ' + (size * 2) + 'px;">' +
+                  pulseRing +
+                  '<div style="background-color: ' + color + '; width: ' + (size * 2) + 'px; height: ' + (size * 2) + 'px; border-radius: 50%; border: ' + borderWidth + 'px solid ' + selectedBorderColor + '; ' + glowEffect + ' position: relative; z-index: 2;"></div>' +
+                  '</div>',
+            iconSize: [size * 3, size * 3],
+            iconAnchor: [size * 1.5, size * 1.5]
+        });
     } else {
-      // If outside Taiwan, center on Taiwan
-      appView.setCenter(ol.proj.fromLonLat([120.221507, 23.000694]));
+        return L.divIcon({
+            className: 'custom-marker',
+            html: '<div style="background-color: ' + color + '; width: ' + (size * 2) + 'px; height: ' + (size * 2) + 'px; border-radius: 50%; border: ' + borderWidth + 'px solid ' + borderColor + '; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+            iconSize: [size * 2, size * 2],
+            iconAnchor: [size, size]
+        });
     }
-    closeFilterPopup();
-  } else {
-    alert('目前使用的設備無法提供地理資訊');
-  }
-  return false;
-});
-
-var vectorPoints = new ol.layer.Vector({
-  source: vectorSource,
-  style: pointStyleFunction
-});
-
-var baseLayer = new ol.layer.Tile({
-  source: new ol.source.WMTS({
-    matrixSet: 'EPSG:3857',
-    format: 'image/png',
-    url: 'https://wmts.nlsc.gov.tw/wmts',
-    layer: 'EMAP',
-    tileGrid: new ol.tilegrid.WMTS({
-      origin: ol.extent.getTopLeft(projectionExtent),
-      resolutions: resolutions,
-      matrixIds: matrixIds
-    }),
-    style: 'default',
-    wrapX: true,
-    attributions: '<a href="http://maps.nlsc.gov.tw/" target="_blank">國土測繪圖資服務雲</a>'
-  }),
-  opacity: 0.8
-});
-
-var map = new ol.Map({
-  layers: [baseLayer, vectorPoints],
-  target: 'map',
-  view: appView
-});
-
-var pointClicked = false;
-var isHashUpdate = false; // Flag to prevent double execution
-
-map.on('singleclick', function (evt) {
-  pointClicked = false;
-  map.forEachFeatureAtPixel(evt.pixel, function (feature, layer) {
-    if (false === pointClicked) {
-      // Reset previous feature styling
-      if (currentFeature && currentFeature !== feature) {
-        currentFeature.setStyle(null); // Reset to default style
-        vectorSource.refresh(); // Force refresh to apply default styling
-      }
-      
-      // Set new current feature and update its styling
-      currentFeature = feature;
-      feature.setStyle(pointStyleFunction(feature));
-      
-      var p = feature.getProperties();
-      
-      // Center the map on the marker first
-      var targetCoords = feature.getGeometry().getCoordinates();
-      appView.setCenter(targetCoords);
-      
-      // Show popup centered on screen after a brief delay
-      setTimeout(function() {
-        showPopup(p, evt.pixel);
-      }, 200);
-      
-      // Update URL hash and page title
-      var targetHash = '#' + p.id;
-      if (window.location.hash !== targetHash) {
-        isHashUpdate = true;
-        window.location.hash = targetHash;
-      }
-      document.title = p.title + ' - 台灣幼兒園地圖';
-      
-      pointClicked = true;
-    }
-  });
-});
-
-var previousFeature = false;
-var currentFeature = false;
-
-var geolocation = new ol.Geolocation({
-  projection: appView.getProjection()
-});
-
-geolocation.setTracking(true);
-
-geolocation.on('error', function (error) {
-  console.log(error.message);
-});
-
-var positionFeature = new ol.Feature();
-
-positionFeature.setStyle(new ol.style.Style({
-  image: new ol.style.Circle({
-    radius: 6,
-    fill: new ol.style.Fill({
-      color: '#3399CC'
-    }),
-    stroke: new ol.style.Stroke({
-      color: '#fff',
-      width: 2
-    })
-  })
-}));
-
-var firstPosDone = false;
-geolocation.on('change:position', function () {
-  var coordinates = geolocation.getPosition();
-  positionFeature.setGeometry(coordinates ? new ol.geom.Point(coordinates) : null);
-  if (false === firstPosDone) {
-    if (coordinates) {
-      // Convert coordinates back to WGS84 for boundary check
-      var lonLat = ol.proj.toLonLat(coordinates);
-      
-      if (isWithinTaiwan(lonLat[0], lonLat[1])) {
-        appView.setCenter(coordinates);
-      } else {
-        // If outside Taiwan, center on Taiwan
-        appView.setCenter(ol.proj.fromLonLat([120.221507, 23.000694]));
-      }
-    }
-    firstPosDone = true;
-  }
-});
-
-new ol.layer.Vector({
-  map: map,
-  source: new ol.source.Vector({
-    features: [positionFeature]
-  })
-});
-
-// Popup functionality
-function showPopup(p, clickPixel) {
-  console.log('showPopup called with:', p.title, 'clickPixel:', clickPixel);
-  var popupTitle = document.getElementById('popupTitle');
-  var popupInfo = document.getElementById('popupInfo');
-  var popupOverlay = document.getElementById('popupOverlay');
-  var popupContent = popupOverlay.querySelector('.popup-content');
-  
-  console.log('Popup elements found:', {
-    popupTitle: !!popupTitle,
-    popupInfo: !!popupInfo, 
-    popupOverlay: !!popupOverlay,
-    popupContent: !!popupContent
-  });
-  
-  popupTitle.innerHTML = p.title;
-  
-  var message = '<table class="table table-sm">';
-  message += '<tbody>';
-  
-  // Basic Information
-  if (p.owner) {
-    message += '<tr><th scope="row" style="width: 120px;">負責人</th><td><a href="https://preschools.olc.tw/owners/' + p.owner + '" target="_blank" class="text-decoration-none">' + p.owner + '</a></td></tr>';
-  }
-  message += '<tr><th scope="row">電話</th><td>' + (p.tel || '未提供') + '</td></tr>';
-  message += '<tr><th scope="row">住址</th><td>' + p.city + p.town + p.address + '</td></tr>';
-  message += '<tr><td colspan="2"><button class="detail-button" onclick="window.open(\'https://preschools.olc.tw/preschools/view/' + p.id + '\', \'_blank\')">詳細資訊</button></td></tr>';
-  
-  // Type and Classification
-  if (p.type === '私立' && p.pre_public !== '無') {
-    message += '<tr><th scope="row">類型</th><td>' + p.type + ' (準公共化)</td></tr>';
-  } else {
-    message += '<tr><th scope="row">類型</th><td>' + p.type + '</td></tr>';
-  }
-  
-  if (p.pre_public && p.pre_public !== '無') {
-    message += '<tr><th scope="row">準公共化</th><td>' + p.pre_public + '</td></tr>';
-  }
-  
-  // Capacity and Size Information
-  if (p.count_approved) {
-    message += '<tr><th scope="row">核定人數</th><td>' + p.count_approved + ' 人</td></tr>';
-  }
-  
-  if (p.size) {
-    message += '<tr><th scope="row">全園總面積</th><td>' + p.size + '</td></tr>';
-  }
-  if (p.size_in) {
-    message += '<tr><th scope="row">室內總面積</th><td>' + p.size_in + '</td></tr>';
-  }
-  if (p.size_out) {
-    message += '<tr><th scope="row">室外活動空間</th><td>' + p.size_out + '</td></tr>';
-  }
-  if (p.floor) {
-    message += '<tr><th scope="row">使用樓層</th><td>' + p.floor + '</td></tr>';
-  }
-  
-  // Registration Information
-  if (p.reg_date) {
-    message += '<tr><th scope="row">核准設立日期</th><td>' + p.reg_date + '</td></tr>';
-  }
-  if (p.reg_no) {
-    message += '<tr><th scope="row">設立許可證號</th><td>' + p.reg_no + '</td></tr>';
-  }
-  if (p.reg_docno) {
-    message += '<tr><th scope="row">設立許可文號</th><td>' + p.reg_docno + '</td></tr>';
-  }
-  
-  // Fees and Services
-  message += '<tr><th scope="row">每月收費</th><td><strong>$' + p.monthly + '</strong></td></tr>';
-  
-  if (p.is_free5 && p.is_free5 !== '無') {
-    message += '<tr><th scope="row">五歲免費</th><td>' + p.is_free5 + '</td></tr>';
-  }
-  
-  if (p.is_after && p.is_after !== '無') {
-    message += '<tr><th scope="row">國小課後照顧</th><td>' + p.is_after + '</td></tr>';
-  }
-  
-  if (p.shuttle && p.shuttle !== '無') {
-    message += '<tr><th scope="row">幼童專用車</th><td>' + p.shuttle + '</td></tr>';
-  }
-  
-  // Website
-  if (p.url && p.url !== '') {
-    message += '<tr><th scope="row">網址</th><td><a href="' + p.url + '" target="_blank" class="btn btn-sm btn-outline-primary">點我前往</a></td></tr>';
-  }
-  
-  // Status Information
-  if (p.is_active !== undefined) {
-    var statusText = p.is_active ? '營業中' : '已停業';
-    var statusClass = p.is_active ? 'text-success' : 'text-danger';
-    message += '<tr><th scope="row">營業狀態</th><td><span class="' + statusClass + '">' + statusText + '</span></td></tr>';
-  }
-  
-  // Penalty Records
-  if (p.penalty) {
-    var penaltyClass = p.penalty === '有' ? 'text-warning' : 'text-success';
-    message += '<tr><th scope="row">裁罰記錄</th><td><span class="' + penaltyClass + '">' + p.penalty + '</span></td></tr>';
-  }
-  
-  message += '</tbody></table>';
-  
-  popupInfo.innerHTML = message;
-  
-  // Position the popup in center of screen
-  console.log('Positioning popup in center of screen');
-  var viewportWidth = window.innerWidth;
-  var viewportHeight = window.innerHeight;
-  var popupWidth = 350; // max-width from CSS
-  var popupMaxHeight = Math.floor(viewportHeight * 0.8); // 80vh from CSS
-  
-  // Center the popup
-  var x = (viewportWidth - popupWidth) / 2;
-  var y = (viewportHeight - popupMaxHeight) / 2;
-  
-  // Ensure minimum margins
-  x = Math.max(20, x);
-  y = Math.max(20, y);
-  
-  // Ensure popup doesn't go off edges
-  if (x + popupWidth > viewportWidth - 20) {
-    x = viewportWidth - popupWidth - 20;
-  }
-  if (y + popupMaxHeight > viewportHeight - 20) {
-    y = viewportHeight - popupMaxHeight - 20;
-  }
-  
-  popupContent.style.left = x + 'px';
-  popupContent.style.top = y + 'px';
-  
-  // Remove arrow classes since popup is centered
-  popupContent.classList.remove('arrow-left', 'arrow-right');
-  
-  // Hide connector line since popup is centered
-  var connector = document.getElementById('popupConnector');
-  if (connector) {
-    connector.style.display = 'none';
-  }
-  
-  console.log('Setting popupOverlay display to block');
-  console.log('Final popup position:', popupContent.style.left, popupContent.style.top);
-  console.log('Popup overlay display style:', popupOverlay.style.display);
-  popupOverlay.style.display = 'block';
-  
-  // Check if popup is actually visible after setting display
-  setTimeout(function() {
-    var computedStyle = window.getComputedStyle(popupOverlay);
-    console.log('Popup overlay computed display:', computedStyle.display);
-    console.log('Popup overlay computed visibility:', computedStyle.visibility);
-    console.log('Popup overlay computed z-index:', computedStyle.zIndex);
-  }, 100);
 }
 
+// Initialize the map
+function initMap() {
+    // Initialize Leaflet map centered on Taiwan
+    map = L.map('map').setView([23.000694, 120.221507], 10);
+    
+    // Add Taiwan WMTS base layer
+    var nlscUrl = 'https://wmts.nlsc.gov.tw/wmts/EMAP/default/GoogleMapsCompatible/{z}/{y}/{x}';
+    L.tileLayer(nlscUrl, {
+        attribution: '<a href="http://maps.nlsc.gov.tw/" target="_blank">國土測繪圖資服務雲</a>',
+        maxZoom: 18,
+        opacity: 0.8
+    }).addTo(map);
+    
+    // Add marker cluster group to map
+    map.addLayer(markers);
+    
+    // Setup geolocation
+    setupGeolocation();
+}
+
+// Setup geolocation functionality
+function setupGeolocation() {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            var lon = position.coords.longitude;
+            var lat = position.coords.latitude;
+            
+            if (isWithinTaiwan(lon, lat)) {
+                map.setView([lat, lon], 14);
+                
+                // Add user location marker
+                L.marker([lat, lon], {
+                    icon: L.divIcon({
+                        className: 'user-location',
+                        html: '<div style="background-color: #3399CC; width: 12px; height: 12px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.3);"></div>',
+                        iconSize: [12, 12],
+                        iconAnchor: [6, 6]
+                    })
+                }).addTo(map);
+            }
+        });
+    }
+}
+
+// Geolocation button handler
+$('#btn-geolocation').click(function () {
+    if (navigator.geolocation) {
+        navigator.geolocation.getCurrentPosition(function(position) {
+            var lon = position.coords.longitude;
+            var lat = position.coords.latitude;
+            
+            if (isWithinTaiwan(lon, lat)) {
+                map.setView([lat, lon], 14);
+            } else {
+                map.setView([23.000694, 120.221507], 14);
+            }
+            closeFilterPopup();
+        }, function() {
+            alert('目前使用的設備無法提供地理資訊');
+        });
+    } else {
+        alert('目前使用的設備無法提供地理資訊');
+    }
+    return false;
+});
+
+// Show popup function
+function showPopup(properties) {
+    var popupTitle = document.getElementById('popupTitle');
+    var popupInfo = document.getElementById('popupInfo');
+    var popupOverlay = document.getElementById('popupOverlay');
+    var popupContent = popupOverlay.querySelector('.popup-content');
+    
+    popupTitle.innerHTML = properties.title;
+    
+    var message = '<table class="table table-sm">';
+    message += '<tbody>';
+    
+    // Basic Information
+    if (properties.owner) {
+        message += '<tr><th scope="row" style="width: 120px;">負責人</th><td><a href="https://preschools.olc.tw/owners/' + properties.owner + '" target="_blank" class="text-decoration-none">' + properties.owner + '</a></td></tr>';
+    }
+    message += '<tr><th scope="row">電話</th><td>' + (properties.tel || '未提供') + '</td></tr>';
+    message += '<tr><th scope="row">住址</th><td>' + properties.city + properties.town + properties.address + '</td></tr>';
+    message += '<tr><td colspan="2"><button class="detail-button" onclick="window.open(\'https://preschools.olc.tw/preschools/view/' + properties.id + '\', \'_blank\')">詳細資訊</button></td></tr>';
+    
+    // Type and Classification
+    if (properties.type === '私立' && properties.pre_public !== '無') {
+        message += '<tr><th scope="row">類型</th><td>' + properties.type + ' (準公共化)</td></tr>';
+    } else {
+        message += '<tr><th scope="row">類型</th><td>' + properties.type + '</td></tr>';
+    }
+    
+    if (properties.pre_public && properties.pre_public !== '無') {
+        message += '<tr><th scope="row">準公共化</th><td>' + properties.pre_public + '</td></tr>';
+    }
+    
+    // Capacity and other info...
+    if (properties.count_approved) {
+        message += '<tr><th scope="row">核定人數</th><td>' + properties.count_approved + ' 人</td></tr>';
+    }
+    
+    message += '<tr><th scope="row">每月收費</th><td><strong>$' + properties.monthly + '</strong></td></tr>';
+    
+    // Website
+    if (properties.url && properties.url !== '') {
+        message += '<tr><th scope="row">網址</th><td><a href="' + properties.url + '" target="_blank" class="btn btn-sm btn-outline-primary">點我前往</a></td></tr>';
+    }
+    
+    // Status Information
+    if (properties.is_active !== undefined) {
+        var statusText = properties.is_active ? '營業中' : '已停業';
+        var statusClass = properties.is_active ? 'text-success' : 'text-danger';
+        message += '<tr><th scope="row">營業狀態</th><td><span class="' + statusClass + '">' + statusText + '</span></td></tr>';
+    }
+    
+    // Penalty Records
+    if (properties.penalty) {
+        var penaltyClass = properties.penalty === '有' ? 'text-warning' : 'text-success';
+        message += '<tr><th scope="row">裁罰記錄</th><td><span class="' + penaltyClass + '">' + properties.penalty + '</span></td></tr>';
+    }
+    
+    message += '</tbody></table>';
+    
+    popupInfo.innerHTML = message;
+    
+    // Position the popup in center of screen
+    var viewportWidth = window.innerWidth;
+    var viewportHeight = window.innerHeight;
+    var popupWidth = 350;
+    var popupMaxHeight = Math.floor(viewportHeight * 0.8);
+    
+    var x = (viewportWidth - popupWidth) / 2;
+    var y = (viewportHeight - popupMaxHeight) / 2;
+    
+    x = Math.max(20, x);
+    y = Math.max(20, y);
+    
+    if (x + popupWidth > viewportWidth - 20) {
+        x = viewportWidth - popupWidth - 20;
+    }
+    if (y + popupMaxHeight > viewportHeight - 20) {
+        y = viewportHeight - popupMaxHeight - 20;
+    }
+    
+    popupContent.style.left = x + 'px';
+    popupContent.style.top = y + 'px';
+    
+    popupContent.classList.remove('arrow-left', 'arrow-right');
+    
+    var connector = document.getElementById('popupConnector');
+    if (connector) {
+        connector.style.display = 'none';
+    }
+    
+    popupOverlay.style.display = 'block';
+}
+
+// Close popup
 function closePopup() {
-  var popupOverlay = document.getElementById('popupOverlay');
-  var connector = document.getElementById('popupConnector');
-  
-  popupOverlay.style.display = 'none';
-  
-  if (connector) {
-    connector.style.display = 'none';
-  }
-  
-  // Reset current feature styling
-  if (currentFeature) {
-    currentFeature.setStyle(null); // Reset to default style
-    vectorSource.refresh(); // Force refresh to apply default styling
-    currentFeature = false;
-  }
+    var popupOverlay = document.getElementById('popupOverlay');
+    popupOverlay.style.display = 'none';
+    
+    // Keep the marker highlighted even after closing popup
+    // The highlight will only be removed when another marker is clicked
 }
+
+// Filter functions
+function applyFilters() {
+    markers.clearLayers();
+    
+    var filteredMarkers = allMarkers.filter(function(markerData) {
+        var p = markerData.properties;
+        
+        if (filterCity !== '' && p.city !== filterCity) {
+            return false;
+        }
+        if (filterTown !== '' && p.town !== filterTown) {
+            return false;
+        }
+        if (parseInt(p.monthly) > maxMonthlyFee) {
+            return false;
+        }
+        
+        return true;
+    });
+    
+    filteredMarkers.forEach(function(markerData) {
+        markers.addLayer(markerData.marker);
+    });
+}
+
+// Filter controls
+$('select#city').change(function () {
+    filterCity = $(this).val();
+    var townOptions = '<option value="">--</option>';
+    if (filterCity !== '') {
+        for (var town in cityList[filterCity]) {
+            townOptions += '<option>' + town + '</option>';
+        }
+    }
+    $('select#town').html(townOptions);
+    filterTown = '';
+    applyFilters();
+});
+
+$('select#town').change(function () {
+    filterTown = $(this).val();
+    applyFilters();
+});
+
+$('#monthlyFeeRange').on('input', function() {
+    maxMonthlyFee = parseInt($(this).val()) || 0;
+    $('#monthlyFeeValue').text(maxMonthlyFee);
+    applyFilters();
+});
 
 // Close popup when clicking overlay background
 document.getElementById('popupOverlay').addEventListener('click', function(e) {
-  console.log('Popup overlay clicked, target:', e.target, 'this:', this);
-  console.log('Target class:', e.target.className);
-  console.log('Closest popup-content:', e.target.closest('.popup-content'));
-  
-  // Close if clicking on the overlay itself or any area outside the popup content
-  if (e.target === this || !e.target.closest('.popup-content')) {
-    console.log('Closing popup due to overlay click');
-    closePopup();
-  } else {
-    console.log('Not closing popup - click was inside content');
-  }
+    if (e.target === this || !e.target.closest('.popup-content')) {
+        closePopup();
+    }
 });
 
 // Filter popup functionality
 function openFilterPopup() {
-  var filterPopup = document.getElementById('filterPopup');
-  filterPopup.style.display = 'flex';
+    document.getElementById('filterPopup').style.display = 'flex';
 }
 
 function closeFilterPopup() {
-  var filterPopup = document.getElementById('filterPopup');
-  filterPopup.style.display = 'none';
+    document.getElementById('filterPopup').style.display = 'none';
 }
 
-// Close filter popup when clicking overlay background
 document.getElementById('filterPopup').addEventListener('click', function(e) {
-  if (e.target === this) {
-    closeFilterPopup();
-  }
+    if (e.target === this) {
+        closeFilterPopup();
+    }
 });
 
-function showPos(lng, lat) {
-  firstPosDone = true;
-  appView.setCenter(ol.proj.fromLonLat([parseFloat(lng), parseFloat(lat)]));
+// Legend toggle
+function toggleLegend() {
+    var legend = document.getElementById('mapLegend');
+    var toggleBtn = legend.querySelector('.legend-toggle');
+    
+    if (legend.classList.contains('collapsed')) {
+        legend.classList.remove('collapsed');
+        toggleBtn.textContent = '−';
+    } else {
+        legend.classList.add('collapsed');
+        toggleBtn.textContent = '+';
+    }
 }
 
-var previousFeature = false;
-var currentFeature = false;
-var slipYears = ['113'];
-var slipKeys = ['學費', '雜費', '材料費', '活動費', '午餐費', '點心費', '全學期總收費', '交通費', '課後延托費', '家長會費'];
-
-function showPoint(pointId) {
-  console.log('showPoint called with ID:', pointId);
-  firstPosDone = true;
-  var features = vectorPoints.getSource().getFeatures();
-  console.log('Total features found:', features.length);
-  var pointFound = false;
-  for (k in features) {
-    var p = features[k].getProperties();
-    if (p.id === pointId) {
-      console.log('Found matching feature:', p.title, 'with ID:', p.id);
-      pointFound = true;
-      
-      // If this is called from a hash update due to direct click, don't show popup again
-      if (isHashUpdate) {
-        console.log('Skipping due to isHashUpdate flag');
-        isHashUpdate = false;
-        document.title = p.title + ' - 台灣幼兒園地圖';
-        return;
-      }
-      
-      console.log('Setting map center and zoom...');
-      var targetFeature = features[k]; // Capture the feature reference
-      var targetCoords = targetFeature.getGeometry().getCoordinates();
-      
-      appView.setCenter(targetCoords);
-      appView.setZoom(15);
-      
-      // Wait for map to settle, then simulate a click at the marker's center
-      setTimeout(function() {
-        console.log('Timeout triggered, calculating pixel coordinates...');
-        var pixel = map.getPixelFromCoordinate(targetCoords);
-        console.log('Pixel coordinates:', pixel);
+// Load preschool data
+function loadPreschoolData() {
+    $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/preschools.json', {}, function (data) {
+        var maxFee = 0;
+        var findTerms = [];
         
-        // Instead of trying to find the feature at pixel coordinates,
-        // let's directly trigger the popup since we already have the feature
-        console.log('Directly showing popup for target feature...');
-        
-        // Reset previous feature styling
-        if (currentFeature && currentFeature !== targetFeature) {
-          currentFeature.setStyle(null);
-          vectorSource.refresh();
-        }
-        
-        // Set new current feature and update its styling
-        currentFeature = targetFeature;
-        targetFeature.setStyle(pointStyleFunction(targetFeature));
-        
-        var p = targetFeature.getProperties();
-        console.log('About to call showPopup with:', p.title, 'ID:', p.id);
-        showPopup(p, pixel);
-        console.log('Popup should now be visible');
-      }, 1000); // Increased delay to 1 second
-      
-      document.title = p.title + ' - 台灣幼兒園地圖';
-    }
-  }
-  if (!pointFound) {
-    console.log('No feature found with ID:', pointId);
-  }
-}
-
-var pointsFc;
-var adminTree = {};
-var findTerms = [];
-$.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/preschools.json', {}, function (c) {
-  pointsFc = c;
-  var vFormat = vectorSource.getFormat();
-  vectorSource.addFeatures(vFormat.readFeatures(pointsFc));
-
-  // Find the maximum monthly fee to set the range slider's max value
-  var maxFee = 0;
-  for (k in pointsFc.features) {
-    var p = pointsFc.features[k].properties;
-    var monthlyFee = parseInt(p.monthly);
-    if (!isNaN(monthlyFee) && monthlyFee > maxFee) {
-      maxFee = monthlyFee;
-    }
-    findTerms.push({
-      value: p.id,
-      label: p.title + '(' + p.owner + ') ' + p.address
-    });
-    if (!cityList[p.city]) {
-      cityList[p.city] = {};
-    }
-    if (!cityList[p.city][p.town]) {
-      ++cityList[p.city][p.town];
-    }
-  }
-  // Populate city dropdown
-  var cityOptions = '<option value="">--</option>';
-  for (city in cityList) {
-    cityOptions += '<option>' + city + '</option>';
-  }
-  $('select#city').html(cityOptions);
-
-  // Update the range slider's max value and initial value
-  $('#monthlyFeeRange').attr('max', maxFee);
-  $('#monthlyFeeRange').val(maxFee);
-  $('#monthlyFeeValue').text(maxFee);
-  maxMonthlyFee = maxFee;
-
-  routie(':pointId', showPoint);
-  routie('pos/:lng/:lat', showPos);
-  
-  // Check if there's a hash in the URL on initial load
-  if (window.location.hash) {
-    var pointId = window.location.hash.substring(1); // Remove the # symbol
-    if (pointId) {
-      // Small delay to ensure everything is properly initialized
-      setTimeout(function() {
-        showPoint(pointId);
-      }, 100);
-    }
-  }
-
-  // Initialize autocomplete for preschool search
-  $('#findPoint').autocomplete({
-    source: findTerms,
-    select: function (event, ui) {
-      var targetHash = '#' + ui.item.value;
-      if (window.location.hash !== targetHash) {
-        window.location.hash = targetHash;
-      }
-      closeFilterPopup();
-    }
-  });
-});
-var vehicles = {};
-$.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/kids_vehicles.json', {}, function (c) {
-  vehicles = c;
-});
-
-$.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/punish_all.json', {}, function(data) {
-    punishmentData = data;
-    // Create search terms from punishment data
-    for (let key in data) {
-        for (let punishment of data[key]) {
-            punishmentTerms.push({
-                value: punishment.id,
-                label: punishment.date + key + ' - ' + punishment.punishment + '(' + punishment.law + ')'
+        data.features.forEach(function(feature) {
+            var p = feature.properties;
+            var coords = feature.geometry.coordinates;
+            
+            // Create marker with permanent label for monthly fee
+            var marker = L.marker([coords[1], coords[0]], {
+                icon: createMarkerIcon(p, false)
             });
+            
+            // Add permanent tooltip showing monthly fee
+            marker.bindTooltip('$' + p.monthly + '/月', {
+                permanent: true,
+                direction: 'bottom',
+                className: 'fee-label',
+                offset: [0, 15],
+                opacity: 1
+            });
+            
+            // Store properties with marker
+            marker.properties = p;
+            
+            // Add click handler
+            marker.on('click', function(e) {
+                // Update marker style
+                if (currentFeature) {
+                    currentFeature.setIcon(createMarkerIcon(currentFeature.properties, false));
+                }
+                currentFeature = marker;
+                marker.setIcon(createMarkerIcon(p, true));
+                
+                // Show popup without changing view
+                showPopup(p);
+                document.title = p.title + ' - 台灣幼兒園地圖';
+                
+                // Update URL hash
+                if (window.location.hash !== '#' + p.id) {
+                    isHashUpdateFromClick = true;
+                    window.location.hash = '#' + p.id;
+                }
+            });
+            
+            // Store marker data
+            allMarkers.push({
+                marker: marker,
+                properties: p
+            });
+            
+            // Build city list
+            if (!cityList[p.city]) {
+                cityList[p.city] = {};
+            }
+            if (!cityList[p.city][p.town]) {
+                cityList[p.city][p.town] = 1;
+            } else {
+                cityList[p.city][p.town]++;
+            }
+            
+            // Track max fee
+            var monthlyFee = parseInt(p.monthly);
+            if (!isNaN(monthlyFee) && monthlyFee > maxFee) {
+                maxFee = monthlyFee;
+            }
+            
+            // Build search terms
+            findTerms.push({
+                value: p.id,
+                label: p.title + '(' + p.owner + ') ' + p.address
+            });
+        });
+        
+        // Populate city dropdown
+        var cityOptions = '<option value="">--</option>';
+        for (var city in cityList) {
+            cityOptions += '<option>' + city + '</option>';
+        }
+        $('select#city').html(cityOptions);
+        
+        // Update fee range slider
+        $('#monthlyFeeRange').attr('max', maxFee);
+        $('#monthlyFeeRange').val(maxFee);
+        $('#monthlyFeeValue').text(maxFee);
+        maxMonthlyFee = maxFee;
+        
+        // Add all markers to cluster group
+        allMarkers.forEach(function(markerData) {
+            markers.addLayer(markerData.marker);
+        });
+        
+        // Setup autocomplete
+        $('#findPoint').autocomplete({
+            source: findTerms,
+            select: function (event, ui) {
+                var targetHash = '#' + ui.item.value;
+                if (window.location.hash !== targetHash) {
+                    window.location.hash = targetHash;
+                }
+                closeFilterPopup();
+            }
+        });
+        
+        // Handle initial hash after a delay to ensure everything is loaded
+        if (window.location.hash) {
+            setTimeout(function() {
+                showPoint(window.location.hash.substring(1), true);
+            }, 1000);
+        }
+    });
+}
+
+// Show specific point by ID
+function showPoint(pointId, fromInitialLoad) {
+    // Ensure map is initialized
+    if (!map) {
+        console.log('Map not yet initialized');
+        return;
+    }
+    
+    var found = false;
+    
+    for (var i = 0; i < allMarkers.length; i++) {
+        var markerData = allMarkers[i];
+        if (markerData.properties.id === pointId) {
+            found = true;
+            var marker = markerData.marker;
+            
+            // Only center and zoom if this is from initial page load
+            if (fromInitialLoad) {
+                var latlng = marker.getLatLng();
+                map.setView(latlng, 15);
+                
+                // Simulate click on marker after map settles
+                setTimeout(function() {
+                    marker.fire('click');
+                }, 500);
+            } else {
+                // Just simulate click without changing view
+                marker.fire('click');
+            }
+            
+            break;
         }
     }
     
-    // Initialize autocomplete for punishment search
-    $('#findPunish').autocomplete({
-        source: punishmentTerms,
-        select: function(event, ui) {
-            var targetHash = '#' + ui.item.value;
-            if (window.location.hash !== targetHash) {
-                window.location.hash = targetHash;
+    if (!found) {
+        console.log('No feature found with ID:', pointId);
+    }
+}
+
+// Load punishment data
+function loadPunishmentData() {
+    $.getJSON('https://kiang.github.io/ap.ece.moe.edu.tw/punish_all.json', {}, function(data) {
+        punishmentData = data;
+        
+        for (var key in data) {
+            for (var i = 0; i < data[key].length; i++) {
+                var punishment = data[key][i];
+                punishmentTerms.push({
+                    value: punishment.id,
+                    label: punishment.date + key + ' - ' + punishment.punishment + '(' + punishment.law + ')'
+                });
             }
-            closeFilterPopup();
+        }
+        
+        $('#findPunish').autocomplete({
+            source: punishmentTerms,
+            select: function(event, ui) {
+                var targetHash = '#' + ui.item.value;
+                if (window.location.hash !== targetHash) {
+                    window.location.hash = targetHash;
+                }
+                closeFilterPopup();
+            }
+        });
+    });
+}
+
+// Setup routing
+function setupRouting() {
+    routie(':pointId', function(pointId) {
+        if (isHashUpdateFromClick) {
+            // Reset flag and don't do anything (marker click already handled it)
+            isHashUpdateFromClick = false;
+        } else {
+            // This is from direct URL access or autocomplete, so show the point
+            showPoint(pointId, false);
         }
     });
+    routie('pos/:lng/:lat', function(lng, lat) {
+        if (map) {
+            map.setView([parseFloat(lat), parseFloat(lng)], 14);
+        }
+    });
+}
+
+// Initialize everything when DOM is ready
+$(document).ready(function() {
+    initMap();
+    loadPreschoolData();
+    loadPunishmentData();
+    setupRouting();
 });
 
-// Legend toggle functionality
-function toggleLegend() {
-  var legend = document.getElementById('mapLegend');
-  var toggleBtn = legend.querySelector('.legend-toggle');
-  
-  if (legend.classList.contains('collapsed')) {
-    legend.classList.remove('collapsed');
-    toggleBtn.textContent = '−';
-  } else {
-    legend.classList.add('collapsed');
-    toggleBtn.textContent = '+';
-  }
-}
+// Make functions available globally
+window.closePopup = closePopup;
+window.openFilterPopup = openFilterPopup;
+window.closeFilterPopup = closeFilterPopup;
+window.toggleLegend = toggleLegend;
