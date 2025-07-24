@@ -229,6 +229,15 @@ function showPopup(properties) {
     
     message += '</tbody></table>';
     
+    // Special promotion for 竹北市 preschools
+    if (properties.city === '新竹縣' && properties.town === '竹北市') {
+        message += '<div style="text-align: center; margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 6px;">';
+        message += '<a href="https://www.facebook.com/zhubeibetter" target="_blank" style="text-decoration: none;">';
+        message += '<img src="img/zhubeibetter.jpg" alt="竹北更好" style="max-width: 100%; height: auto; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">';
+        message += '</a>';
+        message += '</div>';
+    }
+    
     popupInfo.innerHTML = message;
     
     // Position the popup in center of screen
@@ -295,6 +304,17 @@ function applyFilters() {
     filteredMarkers.forEach(function(markerData) {
         markers.addLayer(markerData.marker);
     });
+    
+    // Fit map bounds to show all filtered markers
+    if (filteredMarkers.length > 0 && (filterCity !== '' || filterTown !== '')) {
+        var group = new L.featureGroup(filteredMarkers.map(function(markerData) {
+            return markerData.marker;
+        }));
+        map.fitBounds(group.getBounds(), {
+            padding: [20, 20],
+            maxZoom: 15
+        });
+    }
 }
 
 // Filter controls
