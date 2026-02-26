@@ -224,7 +224,8 @@ function showPopup(properties) {
     // Penalty Records
     if (properties.penalty) {
         var penaltyClass = properties.penalty === '有' ? 'text-warning' : 'text-success';
-        message += '<tr><th scope="row">裁罰記錄</th><td><span class="' + penaltyClass + '">' + properties.penalty + '</span></td></tr>';
+        var penaltyText = properties.penalty === '有' ? '<a href="https://preschools.olc.tw/preschools/view/' + properties.id + '" target="_blank" style="color:inherit;text-decoration:underline;">' + properties.penalty + '</a>' : properties.penalty;
+        message += '<tr><th scope="row">裁罰記錄</th><td><span class="' + penaltyClass + '">' + penaltyText + '</span></td></tr>';
     }
     
     message += '</tbody></table>';
